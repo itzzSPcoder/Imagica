@@ -6,6 +6,7 @@ import { Layout } from "@/components/layout";
 import Home from "@/pages/home";
 import History from "@/pages/history";
 import SketchDetail from "@/pages/sketch-detail";
+import PreviewStandalone from "@/pages/preview-standalone";
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 
@@ -13,14 +14,19 @@ const queryClient = new QueryClient();
 
 function Router() {
   return (
-    <Layout>
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/history" component={History} />
-        <Route path="/sketch/:id" component={SketchDetail} />
-        <Route component={NotFound} />
-      </Switch>
-    </Layout>
+    <Switch>
+      <Route path="/preview/:id" component={PreviewStandalone} />
+      <Route>
+        <Layout>
+          <Switch>
+            <Route path="/" component={Home} />
+            <Route path="/history" component={History} />
+            <Route path="/sketch/:id" component={SketchDetail} />
+            <Route component={NotFound} />
+          </Switch>
+        </Layout>
+      </Route>
+    </Switch>
   );
 }
 

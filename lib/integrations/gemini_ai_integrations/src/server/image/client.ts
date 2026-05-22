@@ -1,19 +1,29 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 
-export const ai = new GoogleGenAI({
-  apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY,
-  httpOptions: {
-    apiVersion: "",
-    baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL,
+function getImageClient(apiKey?: string) {
+  const key = apiKey?.trim();
+  if (!key) {
+    throw Object.assign(
+      new Error("No Gemini API key provided. Please set your API key in the settings panel."),
+      { status: 401 },
+    );
+  }
+
+  return new GoogleGenAI({ apiKey: key });
+}
+
+export const ai = {
+  get models() {
+    return getImageClient().models;
   },
-});
+};
 
 /**
  * Generate an image and return as base64 data URL.
- * Uses gemini-2.5-flash-image model via Replit AI Integrations.
+ * Uses the user-provided Gemini API key.
  */
-export async function generateImage(prompt: string): Promise<string> {
-  const response = await ai.models.generateContent({
+export async function generateImage(prompt: string, apiKey?: string): Promise<string> {
+  const response = await getImageClient(apiKey).models.generateContent({
     model: "gemini-2.5-flash-image",
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     config: {

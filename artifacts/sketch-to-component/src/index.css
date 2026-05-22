@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -73,54 +73,56 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  --background: 240 10% 4%;
-  --foreground: 0 0% 98%;
-  --border: 240 6% 15%;
-  --card: 240 10% 6%;
-  --card-foreground: 0 0% 98%;
-  --card-border: 240 6% 15%;
-  --sidebar: 240 10% 4%;
-  --sidebar-foreground: 0 0% 98%;
-  --sidebar-border: 240 6% 15%;
-  --sidebar-primary: 0 0% 98%;
-  --sidebar-primary-foreground: 240 10% 4%;
-  --sidebar-accent: 240 6% 15%;
-  --sidebar-accent-foreground: 0 0% 98%;
-  --sidebar-ring: 240 6% 84%;
-  --popover: 240 10% 4%;
-  --popover-foreground: 0 0% 98%;
-  --popover-border: 240 6% 15%;
+  --background: 223 31% 7%; /* #0d0f14 */
+  --foreground: 210 20% 98%;
+  --border: 227 20% 18%; /* #1a1d27 border */
+  --card: 227 20% 13%; /* #1a1d27 */
+  --card-foreground: 210 20% 98%;
+  --card-border: 227 20% 18%;
+  --sidebar: 223 31% 7%;
+  --sidebar-foreground: 210 20% 98%;
+  --sidebar-border: 227 20% 18%;
+  --sidebar-primary: 210 20% 98%;
+  --sidebar-primary-foreground: 223 31% 7%;
+  --sidebar-accent: 227 20% 15%;
+  --sidebar-accent-foreground: 210 20% 98%;
+  --sidebar-ring: 217 90% 76%;
+  --popover: 223 31% 7%;
+  --popover-foreground: 210 20% 98%;
+  --popover-border: 227 20% 18%;
   
-  /* Primary: Electric Indigo */
-  --primary: 250 89% 65%;
-  --primary-foreground: 0 0% 100%;
+  /* Primary: Google Blue light */
+  --primary: 217 90% 76%; /* #8ab4f8 */
+  --primary-foreground: 223 31% 7%;
   
-  --secondary: 240 6% 15%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 240 6% 15%;
-  --muted-foreground: 240 5% 65%;
-  --accent: 240 6% 15%;
-  --accent-foreground: 0 0% 98%;
+  --secondary: 227 20% 15%;
+  --secondary-foreground: 210 20% 98%;
+  --muted: 227 20% 15%;
+  --muted-foreground: 215 15% 65%;
+  
+  /* Accent: Google Purple */
+  --accent: 271 86% 76%; /* #c58af9 */
+  --accent-foreground: 210 20% 98%;
+  
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 0 0% 98%;
-  --input: 240 6% 15%;
-  --ring: 250 89% 65%;
+  --input: 227 20% 15%;
+  --ring: 217 90% 76%;
   
-  --chart-1: 250 89% 65%;
+  --chart-1: 217 90% 76%;
   --chart-2: 180 100% 50%;
   --chart-3: 340 100% 60%;
   --chart-4: 40 100% 50%;
   --chart-5: 280 100% 60%;
 
-  --app-font-sans: 'Geist', sans-serif;
-  --app-font-mono: 'Geist Mono', monospace;
+  --app-font-sans: 'Outfit', 'Inter', sans-serif;
+  --app-font-mono: 'Fira Code', monospace;
   
-  --radius: 0.5rem;
+  --radius: 0.75rem; /* Smoother Material-like rounded corners */
 }
 
-/* Force dark mode behavior since we want a dark tool */
 .dark {
-  --background: 240 10% 4%;
+  --background: 223 31% 7%;
 }
 
 @layer base {
@@ -131,4 +133,69 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+}
+
+/* Custom Google/Gemini Shimmers, Loaders, and hover effects */
+.gemini-gradient {
+  background: linear-gradient(135deg, #4285F4, #9B72CB, #D96570, #1B9AAA);
+  background-size: 300% 300%;
+  animation: geminiShimmer 4s ease infinite;
+}
+
+@keyframes geminiShimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.gemini-text-shimmer {
+  background: linear-gradient(135deg, #4285F4, #9B72CB, #D96570, #1B9AAA);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: geminiShimmer 4s ease infinite;
+}
+
+.google-progress-bar {
+  height: 4px;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  background-color: rgba(138, 180, 248, 0.12);
+  border-radius: 2px;
+}
+
+.google-progress-bar-value {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, #4285F4, #9B72CB, #D96570, #1B9AAA);
+  background-size: 200% 100%;
+  position: absolute;
+  animation: googleProgress 1.5s infinite linear;
+  transform-origin: 0% 50%;
+}
+
+@keyframes googleProgress {
+  0% { transform: translateX(-100%) scaleX(1); }
+  50% { transform: translateX(-40%) scaleX(0.4); }
+  100% { transform: translateX(100%) scaleX(1); }
+}
+
+.google-hover-bg {
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.google-hover-bg:hover {
+  background-color: rgba(138, 180, 248, 0.08) !important;
+}
+
+.google-pill-active {
+  background-color: rgba(138, 180, 248, 0.12) !important;
+  color: #8ab4f8 !important;
+  font-weight: 500;
+}
+
+.google-focus-ring:focus-visible {
+  outline: 2px solid #8ab4f8;
+  outline-offset: 2px;
 }

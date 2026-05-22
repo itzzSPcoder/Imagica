@@ -358,6 +358,18 @@ export async function customFetch<T = unknown>(
     }
   }
 
+  // Attach user-provided Gemini API key if present in localStorage
+  if (typeof window !== "undefined" && window.localStorage) {
+    const geminiKey = window.localStorage.getItem("gemini_api_key");
+    if (geminiKey) {
+      headers.set("x-gemini-api-key", geminiKey);
+    }
+    const geminiModel = window.localStorage.getItem("gemini_model");
+    if (geminiModel) {
+      headers.set("x-gemini-model", geminiModel);
+    }
+  }
+
   const requestInfo = { method, url: resolveUrl(input) };
 
   const response = await fetch(input, { ...init, method, headers });

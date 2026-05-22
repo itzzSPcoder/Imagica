@@ -39,7 +39,7 @@ export const ListSketchesResponse = zod.array(ListSketchesResponseItem)
 export const CreateSketchBody = zod.object({
   "title": zod.string(),
   "imageDataUrl": zod.string(),
-  "framework": zod.enum(['react-tailwind', 'react-shadcn', 'html-tailwind']),
+  "framework": zod.enum(['react-tailwind', 'react-shadcn', 'html-tailwind', 'mern-stack']),
   "instructions": zod.string().optional()
 })
 
@@ -80,7 +80,7 @@ export const RegenerateSketchParams = zod.object({
 
 export const RegenerateSketchBody = zod.object({
   "instructions": zod.string().optional(),
-  "framework": zod.enum(['react-tailwind', 'react-shadcn', 'html-tailwind']).optional()
+  "framework": zod.enum(['react-tailwind', 'react-shadcn', 'html-tailwind', 'mern-stack']).optional()
 })
 
 export const RegenerateSketchResponse = zod.object({

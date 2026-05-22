@@ -1,29 +1,30 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 
-if (!process.env.AI_INTEGRATIONS_GEMINI_BASE_URL) {
-  throw new Error(
-    "AI_INTEGRATIONS_GEMINI_BASE_URL must be set. Did you forget to provision the Gemini AI integration?",
-  );
+function getImageClient(apiKey?: string) {
+  const key = apiKey?.trim();
+  if (!key) {
+    throw Object.assign(
+      new Error("No Gemini API key provided. Please set your API key in the settings panel."),
+      { status: 401 },
+    );
+  }
+
+  return new GoogleGenAI({
+    apiKey: key,
+  });
 }
 
-if (!process.env.AI_INTEGRATIONS_GEMINI_API_KEY) {
-  throw new Error(
-    "AI_INTEGRATIONS_GEMINI_API_KEY must be set. Did you forget to provision the Gemini AI integration?",
-  );
-}
-
-export const ai = new GoogleGenAI({
-  apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY,
-  httpOptions: {
-    apiVersion: "",
-    baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL,
+export const ai = {
+  get models() {
+    return getImageClient().models;
   },
-});
+};
 
 export async function generateImage(
-  prompt: string
+  prompt: string,
+  apiKey?: string,
 ): Promise<{ b64_json: string; mimeType: string }> {
-  const response = await ai.models.generateContent({
+  const response = await getImageClient(apiKey).models.generateContent({
     model: "gemini-2.5-flash-image",
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     config: {

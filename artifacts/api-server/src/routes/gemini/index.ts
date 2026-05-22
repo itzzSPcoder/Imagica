@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, desc } from "drizzle-orm";
 import { db, conversations as conversationsTable, messages as messagesTable } from "@workspace/db";
-import { ai } from "@workspace/integrations-gemini-ai";
+import { getGeminiClient } from "@workspace/integrations-gemini-ai";
 import { generateImage } from "@workspace/integrations-gemini-ai/image";
 import {
   CreateGeminiConversationBody,
@@ -14,6 +14,16 @@ import {
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
+const DEFAULT_GEMINI_MODEL = "gemini-2.0-flash";
+const GEMINI_MODELS = new Set(["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.5-pro"]);
+
+function getGeminiModel(req: { headers: Record<string, unknown>; query?: Record<string, unknown> }) {
+  const rawModel = req.headers["x-gemini-model"] || req.query?.model;
+  const model = Array.isArray(rawModel) ? rawModel[0] : rawModel;
+  return typeof model === "string" && GEMINI_MODELS.has(model)
+    ? model
+    : DEFAULT_GEMINI_MODEL;
+}
 
 router.get("/gemini/conversations", async (_req, res): Promise<void> => {
   const conversations = await db
@@ -139,11 +149,15 @@ router.post("/gemini/conversations/:id/messages", async (req, res): Promise<void
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
 
+  const userApiKey = (req.headers["x-gemini-api-key"] || req.query.apiKey) as string | undefined;
+  const model = getGeminiModel(req);
+  const client = getGeminiClient(userApiKey);
+
   let fullResponse = "";
 
-  const stream = await ai.models.generateContentStream({
-    model: "gemini-2.5-flash",
-    contents: allMessages.map((m) => ({
+  const stream = await client.models.generateContentStream({
+    model,
+    contents: allMessages.map((m: { role: string; content: string }) => ({
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }],
     })),
@@ -175,7 +189,8 @@ router.post("/gemini/generate-image", async (req, res): Promise<void> => {
     return;
   }
 
-  const { b64_json, mimeType } = await generateImage(parsed.data.prompt);
+  const userApiKey = req.headers["x-gemini-api-key"] as string | undefined;
+  const { b64_json, mimeType } = await generateImage(parsed.data.prompt, userApiKey);
   res.json({ b64_json, mimeType });
 });
 

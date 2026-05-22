@@ -9,6 +9,7 @@ export const sketchesTable = pgTable("sketches", {
   generatedCode: text("generated_code").notNull(),
   framework: text("framework").notNull().default("react-tailwind"),
   instructions: text("instructions"),
+  analysis: text("analysis"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

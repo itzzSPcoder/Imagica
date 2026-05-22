@@ -1,0 +1,11 @@
+
+  [32m[1mVITE[22m v7.3.3[39m  [2mready in [0m[1m733[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m25383[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.229:[1m25383[22m/[39m
+[2m10:40:03 PM[22m [36m[1m[vite][22m[39m [32martifacts/sketch-to-component/vite.config.ts changed, restarting server...[39m
+[2m10:40:03 PM[22m [36m[1m[vite][22m[39m server restarted.
+[2m10:40:20 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[2m10:40:24 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mdist/public/index.html[22m
+[2m10:42:10 PM[22m [36m[1m[vite][22m[39m [32martifacts/sketch-to-component/vite.config.ts changed, restarting server...[39m
+[2m10:42:10 PM[22m [36m[1m[vite][22m[39m server restarted.

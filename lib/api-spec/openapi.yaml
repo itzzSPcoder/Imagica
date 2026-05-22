@@ -343,7 +343,7 @@ components:
           type: string
         framework:
           type: string
-          enum: [react-tailwind, react-shadcn, html-tailwind]
+          enum: [react-tailwind, react-shadcn, html-tailwind, mern-stack]
         instructions:
           type: string
       required:
@@ -358,7 +358,7 @@ components:
           type: string
         framework:
           type: string
-          enum: [react-tailwind, react-shadcn, html-tailwind]
+          enum: [react-tailwind, react-shadcn, html-tailwind, mern-stack]
       required: []
 
     SketchStats:
