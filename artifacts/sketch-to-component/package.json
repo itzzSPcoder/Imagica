@@ -75,6 +75,7 @@
     "zod": "catalog:"
   },
   "dependencies": {
+    "@fontsource/geist-sans": "^5.2.5",
     "prism-react-renderer": "^2.4.1",
     "react-compare-slider": "^4.0.0"
   }

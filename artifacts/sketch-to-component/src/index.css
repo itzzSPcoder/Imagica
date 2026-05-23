@@ -1,4 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap');
+@import "@fontsource/geist-sans/400.css";
+@import "@fontsource/geist-sans/500.css";
+@import "@fontsource/geist-sans/600.css";
+@import "@fontsource/geist-sans/700.css";
+@import url("https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -58,7 +62,9 @@
   --color-sidebar-ring: hsl(var(--sidebar-ring));
 
   --font-sans: var(--app-font-sans);
+  --font-headline: var(--app-font-headline);
   --font-mono: var(--app-font-mono);
+  --color-hero-sub: hsl(var(--hero-sub));
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -67,62 +73,101 @@
 }
 
 :root {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
+  --button-outline: rgba(0, 0, 0, 0.08);
+  --badge-outline: rgba(0, 0, 0, 0.04);
   --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
+  --elevate-1: rgba(0, 0, 0, 0.03);
+  --elevate-2: rgba(0, 0, 0, 0.06);
 
-  --background: 223 31% 7%; /* #0d0f14 */
-  --foreground: 210 20% 98%;
-  --border: 227 20% 18%; /* #1a1d27 border */
-  --card: 227 20% 13%; /* #1a1d27 */
-  --card-foreground: 210 20% 98%;
-  --card-border: 227 20% 18%;
-  --sidebar: 223 31% 7%;
-  --sidebar-foreground: 210 20% 98%;
-  --sidebar-border: 227 20% 18%;
-  --sidebar-primary: 210 20% 98%;
-  --sidebar-primary-foreground: 223 31% 7%;
-  --sidebar-accent: 227 20% 15%;
-  --sidebar-accent-foreground: 210 20% 98%;
-  --sidebar-ring: 217 90% 76%;
-  --popover: 223 31% 7%;
-  --popover-foreground: 210 20% 98%;
-  --popover-border: 227 20% 18%;
-  
-  /* Primary: Google Blue light */
-  --primary: 217 90% 76%; /* #8ab4f8 */
-  --primary-foreground: 223 31% 7%;
-  
-  --secondary: 227 20% 15%;
-  --secondary-foreground: 210 20% 98%;
-  --muted: 227 20% 15%;
-  --muted-foreground: 215 15% 65%;
-  
-  /* Accent: Google Purple */
-  --accent: 271 86% 76%; /* #c58af9 */
-  --accent-foreground: 210 20% 98%;
-  
-  --destructive: 0 62.8% 30.6%;
+  /* Light theme */
+  --background: 40 33% 97%;
+  --foreground: 260 87% 12%;
+  --hero-sub: 260 20% 38%;
+  --border: 260 20% 88%;
+  --card: 40 25% 99%;
+  --card-foreground: 260 87% 12%;
+  --card-border: 260 20% 88%;
+  --sidebar: 40 33% 97%;
+  --sidebar-foreground: 260 87% 12%;
+  --sidebar-border: 260 20% 88%;
+  --sidebar-primary: 260 87% 12%;
+  --sidebar-primary-foreground: 40 33% 97%;
+  --sidebar-accent: 40 20% 94%;
+  --sidebar-accent-foreground: 260 87% 12%;
+  --sidebar-ring: 260 60% 50%;
+  --popover: 40 25% 99%;
+  --popover-foreground: 260 87% 12%;
+  --popover-border: 260 20% 88%;
+
+  --primary: 260 60% 50%;
+  --primary-foreground: 40 33% 97%;
+
+  --secondary: 40 20% 94%;
+  --secondary-foreground: 260 87% 12%;
+  --muted: 40 20% 94%;
+  --muted-foreground: 260 15% 42%;
+
+  --accent: 271 70% 55%;
+  --accent-foreground: 40 33% 97%;
+
+  --destructive: 0 72% 48%;
   --destructive-foreground: 0 0% 98%;
-  --input: 227 20% 15%;
-  --ring: 217 90% 76%;
-  
-  --chart-1: 217 90% 76%;
-  --chart-2: 180 100% 50%;
-  --chart-3: 340 100% 60%;
-  --chart-4: 40 100% 50%;
-  --chart-5: 280 100% 60%;
+  --input: 40 20% 94%;
+  --ring: 260 60% 50%;
 
-  --app-font-sans: 'Outfit', 'Inter', sans-serif;
-  --app-font-mono: 'Fira Code', monospace;
-  
-  --radius: 0.75rem; /* Smoother Material-like rounded corners */
+  --chart-1: 260 60% 50%;
+  --chart-2: 180 70% 40%;
+  --chart-3: 340 70% 50%;
+  --chart-4: 40 90% 45%;
+  --chart-5: 280 70% 50%;
+
+  --app-font-sans: "Geist Sans", system-ui, sans-serif;
+  --app-font-headline: "General Sans", "Geist Sans", system-ui, sans-serif;
+  --app-font-mono: ui-monospace, monospace;
+
+  --radius: 0.75rem;
 }
 
 .dark {
-  --background: 223 31% 7%;
+  --button-outline: rgba(255, 255, 255, 0.1);
+  --badge-outline: rgba(255, 255, 255, 0.05);
+  --elevate-1: rgba(255, 255, 255, 0.04);
+  --elevate-2: rgba(255, 255, 255, 0.09);
+
+  --background: 260 87% 3%;
+  --foreground: 40 6% 95%;
+  --hero-sub: 40 6% 82%;
+  --border: 260 30% 18%;
+  --card: 260 40% 8%;
+  --card-foreground: 40 6% 95%;
+  --card-border: 260 30% 18%;
+  --sidebar: 260 87% 3%;
+  --sidebar-foreground: 40 6% 95%;
+  --sidebar-border: 260 30% 18%;
+  --sidebar-primary: 40 6% 95%;
+  --sidebar-primary-foreground: 260 87% 3%;
+  --sidebar-accent: 260 35% 12%;
+  --sidebar-accent-foreground: 40 6% 95%;
+  --sidebar-ring: 260 60% 65%;
+  --popover: 260 40% 8%;
+  --popover-foreground: 40 6% 95%;
+  --popover-border: 260 30% 18%;
+
+  --primary: 260 60% 70%;
+  --primary-foreground: 260 87% 3%;
+
+  --secondary: 260 35% 12%;
+  --secondary-foreground: 40 6% 95%;
+  --muted: 260 35% 12%;
+  --muted-foreground: 40 6% 65%;
+
+  --accent: 271 70% 72%;
+  --accent-foreground: 260 87% 3%;
+
+  --destructive: 0 62.8% 40%;
+  --destructive-foreground: 0 0% 98%;
+  --input: 260 35% 12%;
+  --ring: 260 60% 65%;
 }
 
 @layer base {
@@ -161,7 +206,7 @@
   width: 100%;
   position: relative;
   overflow: hidden;
-  background-color: rgba(138, 180, 248, 0.12);
+  background-color: hsl(var(--primary) / 0.12);
   border-radius: 2px;
 }
 
@@ -186,16 +231,75 @@
 }
 
 .google-hover-bg:hover {
-  background-color: rgba(138, 180, 248, 0.08) !important;
+  background-color: hsl(var(--primary) / 0.08) !important;
 }
 
 .google-pill-active {
-  background-color: rgba(138, 180, 248, 0.12) !important;
-  color: #8ab4f8 !important;
+  background-color: hsl(var(--primary) / 0.12) !important;
+  color: hsl(var(--primary)) !important;
   font-weight: 500;
 }
 
 .google-focus-ring:focus-visible {
-  outline: 2px solid #8ab4f8;
+  outline: 2px solid hsl(var(--primary));
   outline-offset: 2px;
+}
+
+.liquid-glass {
+  background: rgba(255, 255, 255, 0.01);
+  background-blend-mode: luminosity;
+  backdrop-filter: blur(4px);
+  border: none;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.liquid-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.4px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0.15) 20%,
+    rgba(255, 255, 255, 0) 40%,
+    rgba(255, 255, 255, 0) 60%,
+    rgba(255, 255, 255, 0.15) 80%,
+    rgba(255, 255, 255, 0.45) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+@keyframes logo-marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.logo-marquee-track {
+  animation: logo-marquee 20s linear infinite;
+}
+
+.text-gradient-ai {
+  background-image: linear-gradient(to left, #6366f1, #a855f7, #fcd34d);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.nav-pill-active {
+  @apply bg-primary/10 text-primary border border-border shadow-sm;
+}
+
+.nav-pill {
+  @apply text-muted-foreground transition-colors hover:text-foreground;
 }

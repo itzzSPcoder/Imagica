@@ -1,8 +1,13 @@
 import { useParams, useLocation } from "wouter";
-import { useGetSketch, useDeleteSketch, useRegenerateSketch } from "@workspace/api-client-react";
+import {
+  useDeleteSketch,
+  useRegenerateSketch,
+  getGetSketchQueryKey,
+  getGetSketchQueryOptions,
+} from "@workspace/api-client-react";
 import { ReactCompareSlider } from "react-compare-slider";
 import { useState, useEffect, useRef } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CodeBlock } from "@/components/code-block";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -124,7 +129,17 @@ export default function SketchDetail() {
   const { toast } = useToast();
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
-  const { data: sketch, isLoading } = useGetSketch(id);
+  const isValidId = Number.isFinite(id) && id > 0;
+  const {
+    data: sketch,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    ...getGetSketchQueryOptions(id),
+    enabled: isValidId,
+    retry: 1,
+  });
   const deleteSketch = useDeleteSketch();
   const regenerateSketch = useRegenerateSketch();
   const queryClient = useQueryClient();
@@ -187,7 +202,7 @@ export default function SketchDetail() {
     <script src="https://cdn.tailwindcss.com"></script>
     <title>Imagica Export</title>
   </head>
-  <body class="bg-slate-900 text-white">
+  <body class="bg-slate-900 text-foreground">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
@@ -242,6 +257,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     setIsRefining(true);
 
     setChatMessages((prev) => [...prev, { role: "user", content: userMsg }]);
+    setStreamedCode("");
 
     const userApiKey = typeof window !== "undefined" ? window.localStorage.getItem("gemini_api_key") || "" : "";
     const eventSource = new EventSource(`/api/sketches/${sketch.id}/refine?message=${encodeURIComponent(userMsg)}&apiKey=${encodeURIComponent(userApiKey)}`);
@@ -396,8 +412,15 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         },
       },
       {
-        onSuccess: () => {
-          toast({ title: "Code regenerated!", description: "Your component has been updated." });
+        onSuccess: (updated) => {
+          queryClient.setQueryData(getGetSketchQueryKey(id), updated);
+          setStreamedCode("");
+          setStreamedAnalysis(null);
+          setStreamError(null);
+          toast({
+            title: "Regeneration started",
+            description: "Gemini is rebuilding your component in the live preview.",
+          });
           setIsRegenerateOpen(false);
           setActiveTab("preview");
         },
@@ -416,15 +439,47 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     return (
       <div className="max-w-7xl mx-auto p-6 flex flex-col h-[calc(100vh-3.5rem)] space-y-6">
         <div className="flex items-center justify-between">
-          <Skeleton className="h-8 w-64 bg-[#1a1d27]" />
-          <Skeleton className="h-10 w-32 bg-[#1a1d27]" />
+          <Skeleton className="h-8 w-64 bg-card" />
+          <Skeleton className="h-10 w-32 bg-card" />
         </div>
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
           <div className="lg:col-span-8">
-            <Skeleton className="h-full w-full rounded-2xl bg-[#1a1d27]" />
+            <Skeleton className="h-full w-full rounded-2xl bg-card" />
           </div>
           <div className="lg:col-span-4">
-            <Skeleton className="h-full w-full rounded-2xl bg-[#1a1d27]" />
+            <Skeleton className="h-full w-full rounded-2xl bg-card" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isValidId || (!isLoading && !sketch)) {
+    const apiMessage =
+      isError && error && typeof error === "object" && "data" in error
+        ? (error as { data?: { error?: string } }).data?.error
+        : undefined;
+
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-100px)] bg-background">
+        <div className="text-center space-y-4 max-w-sm px-6">
+          <div className="w-14 h-14 bg-card border border-border rounded-full flex items-center justify-center mx-auto">
+            <Code2 className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <h2 className="text-xl font-semibold text-foreground">Sketch not found</h2>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {apiMessage ||
+              (!isValidId
+                ? "Invalid sketch link. Open a sketch from History or generate a new one."
+                : "This sketch doesn't exist anymore. Generate a new one from the Convert tab.")}
+          </p>
+          <div className="flex items-center justify-center gap-2">
+            <Button variant="outline" onClick={() => setLocation("/studio")} className="rounded-full text-xs">
+              Convert
+            </Button>
+            <Button variant="outline" onClick={() => setLocation("/history")} className="rounded-full text-xs">
+              <ArrowLeft className="w-4 h-4 mr-2" /> History
+            </Button>
           </div>
         </div>
       </div>
@@ -432,23 +487,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   }
 
   if (!sketch) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-100px)] bg-[#0d0f14]">
-        <div className="text-center space-y-4">
-          <div className="w-14 h-14 bg-[#1a1d27] border border-[rgba(255,255,255,0.08)] rounded-full flex items-center justify-center mx-auto">
-            <Code2 className="w-6 h-6 text-slate-400" />
-          </div>
-          <h2 className="text-xl font-semibold text-white">Sketch not found</h2>
-          <p className="text-xs text-slate-400">This file doesn't exist or has been removed.</p>
-          <Button variant="outline" onClick={() => setLocation("/history")} className="rounded-full text-xs">
-            <ArrowLeft className="w-4 h-4 mr-2" /> Back to History
-          </Button>
-        </div>
-      </div>
-    );
+    return null;
   }
 
-  const codeToRender = sketch.generatedCode || streamedCode;
+  const codeToRender =
+    (isStreaming || isRefining) && streamedCode
+      ? streamedCode
+      : sketch.generatedCode || streamedCode;
   const previewHtml = buildPreviewHtml(codeToRender, sketch.framework);
 
   const rawAnalysis = (sketch as any).analysis;
@@ -470,10 +515,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   ];
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] flex flex-col p-4 md:p-6 bg-[#0d0f14] overflow-hidden">
+    <div className="h-[calc(100vh-3.5rem)] flex flex-col p-4 md:p-6 bg-background overflow-hidden">
       
       {/* ── Header Toolbar ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 shrink-0 bg-[#0d0f14]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 shrink-0 bg-background">
         
         {/* Left Section: Info */}
         <div className="flex items-center gap-3.5 min-w-0">
@@ -481,22 +526,22 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             variant="ghost"
             size="icon"
             onClick={() => setLocation("/history")}
-            className="rounded-full shrink-0 border border-[rgba(255,255,255,0.06)] hover:bg-[rgba(255,255,255,0.04)]"
+            className="rounded-full shrink-0 border border-border hover:bg-muted"
           >
-            <ArrowLeft className="w-4 h-4 text-slate-300" />
+            <ArrowLeft className="w-4 h-4 text-foreground/80" />
           </Button>
           <div className="min-w-0">
-            <h1 className="text-base font-semibold text-white tracking-normal truncate leading-tight select-all">
+            <h1 className="text-base font-semibold text-foreground tracking-normal truncate leading-tight select-all">
               {sketch.title}
             </h1>
             <div className="flex items-center gap-2.5 mt-1 flex-wrap">
               <Badge
                 variant="secondary"
-                className="font-mono text-[9px] uppercase tracking-wider shrink-0 bg-[rgba(138,180,248,0.08)] border border-[rgba(138,180,248,0.15)] text-[#8ab4f8] py-0.5 rounded-full"
+                className="font-mono text-[9px] uppercase tracking-wider shrink-0 bg-primary/10 border border-primary/20 text-primary py-0.5 rounded-full"
               >
                 {FRAMEWORK_LABELS[sketch.framework] ?? sketch.framework}
               </Badge>
-              <div className="flex items-center text-[10px] text-slate-500 gap-1 shrink-0 font-medium select-none">
+              <div className="flex items-center text-[10px] text-muted-foreground gap-1 shrink-0 font-medium select-none">
                 <Clock className="w-3.5 h-3.5" />
                 {format(new Date(sketch.createdAt), "MMM d · h:mm a")}
               </div>
@@ -509,7 +554,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           
           <button 
             onClick={handleStackBlitzExport}
-            className="px-3.5 py-1.5 rounded-full border border-[rgba(255,255,255,0.08)] bg-[#1a1d27] text-xs text-slate-300 hover:bg-[rgba(138,180,248,0.08)] hover:text-[#8ab4f8] hover:border-[#8ab4f8]/30 transition-all flex items-center gap-1.5 select-none cursor-pointer"
+            className="px-3.5 py-1.5 rounded-full border border-border bg-card text-xs text-foreground/80 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all flex items-center gap-1.5 select-none cursor-pointer"
           >
             <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
             Open in StackBlitz
@@ -517,7 +562,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           
           <button 
             onClick={handleDownload}
-            className="px-3.5 py-1.5 rounded-full border border-[rgba(255,255,255,0.08)] bg-[#1a1d27] text-xs text-slate-300 hover:bg-[rgba(138,180,248,0.08)] hover:text-[#8ab4f8] hover:border-[#8ab4f8]/30 transition-all flex items-center gap-1.5 select-none cursor-pointer"
+            className="px-3.5 py-1.5 rounded-full border border-border bg-card text-xs text-foreground/80 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all flex items-center gap-1.5 select-none cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
             Download
@@ -525,7 +570,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
           <button
             onClick={() => window.open(`/preview/${sketch.id}`, "_blank")}
-            className="px-3.5 py-1.5 rounded-full border border-[rgba(255,255,255,0.08)] bg-[#1a1d27] text-xs text-[#8ab4f8] hover:bg-[rgba(138,180,248,0.08)] hover:border-[#8ab4f8]/30 transition-all flex items-center gap-1.5 select-none cursor-pointer"
+            className="px-3.5 py-1.5 rounded-full border border-border bg-card text-xs text-primary hover:bg-primary/10 hover:border-primary/30 transition-all flex items-center gap-1.5 select-none cursor-pointer"
           >
             <ExternalLink className="w-3.5 h-3.5" />
             Open Preview
@@ -540,38 +585,38 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                   setNewFramework(sketch.framework);
                   setNewInstructions(sketch.instructions || "");
                 }}
-                className="px-3.5 py-1.5 rounded-full bg-[#8ab4f8] text-[#0d0f14] text-xs font-semibold hover:bg-[#a8c7fa] transition-colors flex items-center gap-1.5 select-none cursor-pointer"
+                className="px-3.5 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-colors flex items-center gap-1.5 select-none cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 Regenerate
               </button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[440px] bg-[#1a1d27] border border-[rgba(255,255,255,0.12)] text-white">
+            <DialogContent className="sm:max-w-[440px] bg-card border border-border text-foreground">
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-white font-sans">
+                <DialogTitle className="flex items-center gap-2 text-foreground font-sans">
                   <GeminiSparkleIcon className="w-4 h-4" />
                   Regenerate Component
                 </DialogTitle>
-                <DialogDescription className="text-slate-400 text-xs font-sans">
+                <DialogDescription className="text-muted-foreground text-xs font-sans">
                   Target a different output framework or modify styling instructions.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Target Framework</label>
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Target Framework</label>
                   <Select value={newFramework} onValueChange={setNewFramework}>
-                    <SelectTrigger className="bg-[#0d0f14] border-[rgba(255,255,255,0.08)] text-slate-200">
+                    <SelectTrigger className="bg-background border-border text-foreground">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#1a1d27] border-[rgba(255,255,255,0.12)] text-white">
-                      <SelectItem value="react-tailwind" className="focus:bg-[#8ab4f8]/10 focus:text-[#8ab4f8]">React + Tailwind CSS</SelectItem>
-                      <SelectItem value="react-shadcn" className="focus:bg-[#8ab4f8]/10 focus:text-[#8ab4f8]">React + shadcn/ui</SelectItem>
-                      <SelectItem value="html-tailwind" className="focus:bg-[#8ab4f8]/10 focus:text-[#8ab4f8]">HTML + Tailwind CSS</SelectItem>
+                    <SelectContent className="bg-card border-border text-foreground">
+                      <SelectItem value="react-tailwind" className="focus:bg-primary/10 focus:text-primary">React + Tailwind CSS</SelectItem>
+                      <SelectItem value="react-shadcn" className="focus:bg-primary/10 focus:text-primary">React + shadcn/ui</SelectItem>
+                      <SelectItem value="html-tailwind" className="focus:bg-primary/10 focus:text-primary">HTML + Tailwind CSS</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                     Additional Prompt Guidelines
                   </label>
                   <Textarea
@@ -579,15 +624,15 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                     value={newInstructions}
                     onChange={(e) => setNewInstructions(e.target.value)}
                     rows={4}
-                    className="bg-[#0d0f14] border-[rgba(255,255,255,0.08)] text-slate-200 resize-none text-xs"
+                    className="bg-background border-border text-foreground resize-none text-xs"
                   />
                 </div>
               </div>
               <DialogFooter className="gap-2">
-                <Button variant="ghost" onClick={() => setIsRegenerateOpen(false)} className="rounded-full text-xs text-slate-400 hover:text-white">
+                <Button variant="ghost" onClick={() => setIsRegenerateOpen(false)} className="rounded-full text-xs text-muted-foreground hover:text-foreground">
                   Cancel
                 </Button>
-                <Button onClick={handleRegenerate} disabled={regenerateSketch.isPending} className="bg-[#8ab4f8] text-[#0d0f14] hover:bg-[#a8c7fa] rounded-full text-xs">
+                <Button onClick={handleRegenerate} disabled={regenerateSketch.isPending} className="bg-primary text-primary-foreground hover:opacity-90 rounded-full text-xs">
                   {regenerateSketch.isPending ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
@@ -607,19 +652,19 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           {/* Delete Dialog */}
           <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
             <DialogTrigger asChild>
-              <button className="p-2 rounded-full border border-[rgba(255,255,255,0.08)] bg-[#1a1d27] text-slate-400 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all cursor-pointer select-none">
+              <button className="p-2 rounded-full border border-border bg-card text-muted-foreground hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all cursor-pointer select-none">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[380px] bg-[#1a1d27] border border-[rgba(255,255,255,0.12)] text-white">
+            <DialogContent className="sm:max-w-[380px] bg-card border border-border text-foreground">
               <DialogHeader>
-                <DialogTitle className="text-white">Delete Layout?</DialogTitle>
-                <DialogDescription className="text-slate-400 text-xs">
+                <DialogTitle className="text-foreground">Delete Layout?</DialogTitle>
+                <DialogDescription className="text-muted-foreground text-xs">
                   Are you sure you want to delete "{sketch.title}"? This action cannot be undone.
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter className="gap-2 mt-2">
-                <Button variant="ghost" onClick={() => setIsDeleteOpen(false)} className="rounded-full text-xs text-slate-400 hover:text-white">
+                <Button variant="ghost" onClick={() => setIsDeleteOpen(false)} className="rounded-full text-xs text-muted-foreground hover:text-foreground">
                   Cancel
                 </Button>
                 <Button
@@ -648,21 +693,21 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <div className="flex-1 flex flex-col min-w-0">
           
           {/* Tab bar switcher */}
-          <div className="flex items-center gap-1.5 mb-3 shrink-0 border-b border-[rgba(255,255,255,0.06)] pb-0 select-none">
+          <div className="flex items-center gap-1.5 mb-3 shrink-0 border-b border-border pb-0 select-none">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all -mb-px cursor-pointer ${
                   activeTab === tab.id
-                    ? "border-[#8ab4f8] text-[#8ab4f8]"
-                    : "border-transparent text-slate-400 hover:text-white hover:border-[rgba(255,255,255,0.1)]"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
                 }`}
               >
                 <tab.icon className="w-3.5 h-3.5" />
                 {tab.label}
                 {tab.id === "preview" && (
-                  <span className="ml-1 text-[9px] font-bold bg-[rgba(138,180,248,0.08)] border border-[rgba(138,180,248,0.15)] text-[#8ab4f8] px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  <span className="ml-1 text-[9px] font-bold bg-primary/10 border border-primary/20 text-primary px-2 py-0.5 rounded-full uppercase tracking-wider">
                     Live Preview
                   </span>
                 )}
@@ -673,16 +718,16 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               <div className="ml-auto">
                 <Dialog>
                   <DialogTrigger asChild>
-                    <button className="flex items-center gap-1 px-3 py-1 rounded-full border border-[rgba(255,255,255,0.06)] hover:bg-[rgba(255,255,255,0.04)] text-[10px] text-slate-400 hover:text-white cursor-pointer select-none">
-                      <Settings2 className="w-3 h-3 text-[#8ab4f8]" />
+                    <button className="flex items-center gap-1 px-3 py-1 rounded-full border border-border hover:bg-muted text-[10px] text-muted-foreground hover:text-foreground cursor-pointer select-none">
+                      <Settings2 className="w-3 h-3 text-primary" />
                       Instructions
                     </button>
                   </DialogTrigger>
-                  <DialogContent className="bg-[#1a1d27] border border-[rgba(255,255,255,0.12)] text-white max-w-lg">
+                  <DialogContent className="bg-card border border-border text-foreground max-w-lg">
                     <DialogHeader>
-                      <DialogTitle className="text-white">Active Prompt Guidelines</DialogTitle>
+                      <DialogTitle className="text-foreground">Active Prompt Guidelines</DialogTitle>
                     </DialogHeader>
-                    <div className="bg-[#0d0f14] p-4 border border-[rgba(255,255,255,0.06)] rounded-lg text-xs whitespace-pre-wrap font-mono leading-relaxed text-slate-300">
+                    <div className="bg-background p-4 border border-border rounded-lg text-xs whitespace-pre-wrap font-mono leading-relaxed text-foreground/80">
                       {sketch.instructions}
                     </div>
                   </DialogContent>
@@ -692,19 +737,19 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           </div>
 
           {/* Google AI Studio styled surface card container */}
-          <div className="flex-1 min-h-0 rounded-xl overflow-hidden border border-[rgba(255,255,255,0.08)] bg-[#1a1d27] flex flex-col relative">
+          <div className="flex-1 min-h-0 rounded-xl overflow-hidden border border-border bg-card flex flex-col relative">
             
             {/* Thin top border in Gemini gradient */}
             <div className="h-[2px] w-full gemini-gradient shrink-0" />
 
             {/* Generated Code Tab */}
             {activeTab === "code" && (
-              <div className="w-full h-full overflow-hidden absolute inset-0 z-10 bg-[#1a1d27] flex flex-col">
+              <div className="w-full h-full overflow-hidden absolute inset-0 z-10 bg-card flex flex-col">
                 <div className="flex-1 min-h-0 relative">
                   <CodeBlock code={codeToRender} language={sketch.framework} />
                 </div>
                 {/* Generated by Gemini watermark */}
-                <div className="absolute bottom-3 right-4 text-[10px] font-mono text-slate-600 bg-[#1a1d27] px-2 py-0.5 rounded select-none pointer-events-none">
+                <div className="absolute bottom-3 right-4 text-[10px] font-mono text-muted-foreground bg-card px-2 py-0.5 rounded select-none pointer-events-none">
                   Generated by Gemini 2.5
                 </div>
               </div>
@@ -712,17 +757,17 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
             {/* AI Vision Analysis Tab */}
             {activeTab === "analysis" && (
-              <div className="w-full h-full overflow-auto absolute inset-0 z-10 bg-[#1a1d27] p-6 scrollbar-thin">
+              <div className="w-full h-full overflow-auto absolute inset-0 z-10 bg-card p-6 scrollbar-thin">
                 <div className="max-w-3xl mx-auto space-y-6">
                   
                   {/* Header */}
                   <div className="flex items-center gap-3 select-none">
-                    <div className="w-9 h-9 rounded-xl bg-[rgba(138,180,248,0.08)] border border-[rgba(138,180,248,0.15)] flex items-center justify-center shrink-0">
-                      <Scan className="w-4 h-4 text-[#8ab4f8]" />
+                    <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                      <Scan className="w-4 h-4 text-primary" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-semibold text-white">Vision Structuring Report</h3>
-                      <p className="text-[11px] text-slate-400">Gemini's automated pixel-coordinate parsing logs</p>
+                      <h3 className="text-sm font-semibold text-foreground">Vision Structuring Report</h3>
+                      <p className="text-[11px] text-muted-foreground">Gemini's automated pixel-coordinate parsing logs</p>
                     </div>
                   </div>
 
@@ -730,19 +775,19 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                     <>
                       {/* Stats cards grid */}
                       <div className="grid grid-cols-3 gap-4 select-none">
-                        <div className="bg-[#0d0f14]/50 border border-[rgba(255,255,255,0.06)] rounded-xl p-4 space-y-1">
-                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Components</p>
-                          <p className="text-xl font-semibold text-[#8ab4f8]">
+                        <div className="bg-background/50 border border-border rounded-xl p-4 space-y-1">
+                          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Components</p>
+                          <p className="text-xl font-semibold text-primary">
                             {analysis.elements.reduce((sum, el) => sum + (el.count || 1), 0)}
                           </p>
                         </div>
-                        <div className="bg-[#0d0f14]/50 border border-[rgba(255,255,255,0.06)] rounded-xl p-4 space-y-1">
-                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Palette</p>
-                          <p className="text-xs font-medium text-slate-200 capitalize truncate">{analysis.colorScheme || "Material Dark"}</p>
+                        <div className="bg-background/50 border border-border rounded-xl p-4 space-y-1">
+                          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Palette</p>
+                          <p className="text-xs font-medium text-foreground capitalize truncate">{analysis.colorScheme || "Material Dark"}</p>
                         </div>
-                        <div className="bg-[#0d0f14]/50 border border-[rgba(255,255,255,0.06)] rounded-xl p-4 space-y-1">
-                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Complexity</p>
-                          <p className="text-xs font-medium text-slate-200 capitalize flex items-center">
+                        <div className="bg-background/50 border border-border rounded-xl p-4 space-y-1">
+                          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Complexity</p>
+                          <p className="text-xs font-medium text-foreground capitalize flex items-center">
                             <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 ${
                               analysis.complexity === "high" ? "bg-red-400 animate-pulse" :
                               analysis.complexity === "medium" ? "bg-yellow-400" : "bg-green-400"
@@ -754,24 +799,24 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
                       {/* Layout Description */}
                       {analysis.layout && analysis.layout !== "unknown" && (
-                        <div className="bg-[rgba(138,180,248,0.04)] border border-[rgba(138,180,248,0.08)] rounded-xl p-4">
-                          <p className="text-[10px] text-[#8ab4f8] font-bold uppercase tracking-wider mb-1 select-none">Structural Evaluation</p>
-                          <p className="text-xs text-slate-300 leading-relaxed font-sans">{analysis.layout}</p>
+                        <div className="bg-primary/5 border border-primary/15 rounded-xl p-4">
+                          <p className="text-[10px] text-primary font-bold uppercase tracking-wider mb-1 select-none">Structural Evaluation</p>
+                          <p className="text-xs text-foreground/80 leading-relaxed font-sans">{analysis.layout}</p>
                         </div>
                       )}
 
                       {/* Elements Grid */}
                       <div className="space-y-3">
-                        <h4 className="text-xs font-bold uppercase text-slate-500 tracking-wider px-1 select-none">Mapped UI Nodes</h4>
+                        <h4 className="text-xs font-bold uppercase text-muted-foreground tracking-wider px-1 select-none">Mapped UI Nodes</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {analysis.elements.map((el, i) => (
-                            <div key={i} className="flex items-center gap-3 p-3 bg-[#0d0f14]/30 border border-[rgba(255,255,255,0.05)] rounded-xl hover:bg-[#0d0f14]/50 transition-colors">
-                              <div className="w-8 h-8 rounded-lg bg-[#1a1d27] border border-[rgba(255,255,255,0.06)] flex items-center justify-center text-sm shrink-0">
+                            <div key={i} className="flex items-center gap-3 p-3 bg-background/30 border border-border rounded-xl hover:bg-background/50 transition-colors">
+                              <div className="w-8 h-8 rounded-lg bg-card border border-border flex items-center justify-center text-sm shrink-0">
                                 {ELEMENT_ICONS[el.type] || "📦"}
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p className="text-xs font-medium text-slate-200 capitalize truncate">{el.type}</p>
-                                <p className="text-[10px] text-slate-500 truncate">{el.label}</p>
+                                <p className="text-xs font-medium text-foreground capitalize truncate">{el.type}</p>
+                                <p className="text-[10px] text-muted-foreground truncate">{el.label}</p>
                               </div>
                               {el.count && el.count > 1 && (
                                 <Badge variant="secondary" className="text-[9px] shrink-0 font-mono">
@@ -784,10 +829,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                       </div>
                     </>
                   ) : (
-                    <div className="text-center py-16 text-slate-500 select-none">
-                      <Scan className="w-8 h-8 mx-auto mb-3 opacity-30 text-[#8ab4f8]" />
+                    <div className="text-center py-16 text-muted-foreground select-none">
+                      <Scan className="w-8 h-8 mx-auto mb-3 opacity-30 text-primary" />
                       <p className="text-xs">No analysis telemetry available.</p>
-                      <p className="text-[10px] text-slate-600 mt-1">Rebuild the component to trigger vision report.</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">Rebuild the component to trigger vision report.</p>
                     </div>
                   )}
                 </div>
@@ -800,26 +845,26 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 {isStreaming ? (
                   
                   // Google Loading Progress Screen
-                  <div className="w-full h-full bg-[#1a1d27] flex flex-col p-6 font-sans text-slate-300 select-none">
+                  <div className="w-full h-full bg-card flex flex-col p-6 font-sans text-foreground/80 select-none">
                     
-                    <div className="flex items-center justify-between border-b border-[rgba(255,255,255,0.06)] pb-4 mb-4 shrink-0">
+                    <div className="flex items-center justify-between border-b border-border pb-4 mb-4 shrink-0">
                       <div className="flex items-center gap-2">
-                        <GeminiSparkleIcon className="w-4 h-4 text-[#8ab4f8]" />
-                        <span className="font-bold uppercase tracking-wider text-[10px] text-[#8ab4f8]">Gemini Intelligence Engine</span>
+                        <GeminiSparkleIcon className="w-4 h-4 text-primary" />
+                        <span className="font-bold uppercase tracking-wider text-[10px] text-primary">Gemini Intelligence Engine</span>
                       </div>
-                      <div className="text-slate-500 text-[10px]">
+                      <div className="text-muted-foreground text-[10px]">
                         {FRAMEWORK_LABELS[sketch.framework]} · COMPILED_STREAM
                       </div>
                     </div>
 
                     <div className="flex-1 flex flex-col justify-center items-center gap-5 max-w-md mx-auto w-full">
                       <div className="relative flex items-center justify-center">
-                        <div className="w-14 h-14 rounded-full border border-[rgba(138,180,248,0.1)] border-t-[#8ab4f8] animate-spin" />
-                        <Brain className="w-5 h-5 text-[#8ab4f8] absolute animate-pulse" />
+                        <div className="w-14 h-14 rounded-full border border-primary/20 border-t-primary animate-spin" />
+                        <Brain className="w-5 h-5 text-primary absolute animate-pulse" />
                       </div>
                       <div className="text-center space-y-2">
-                        <h4 className="text-xs font-semibold text-[#8ab4f8]">Assembling UI components...</h4>
-                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                        <h4 className="text-xs font-semibold text-primary">Assembling UI components...</h4>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
                           Compiling reactive code files, aligning grid nodes, and building preview sandbox.
                         </p>
                         <div className="google-progress-bar max-w-[200px] mx-auto mt-2">
@@ -828,8 +873,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                       </div>
                     </div>
 
-                    <div className="h-36 border border-[rgba(255,255,255,0.06)] bg-[#0d0f14]/80 rounded-xl p-4 overflow-hidden shrink-0 flex flex-col justify-end">
-                      <div className="text-[9px] text-slate-500 uppercase mb-2 border-b border-[rgba(255,255,255,0.04)] pb-1 font-sans font-bold tracking-wider">
+                    <div className="h-36 border border-border bg-background/80 rounded-xl p-4 overflow-hidden shrink-0 flex flex-col justify-end">
+                      <div className="text-[9px] text-muted-foreground uppercase mb-2 border-b border-border pb-1 font-sans font-bold tracking-wider">
                         Live Code Compiler Output
                       </div>
                       <pre className="whitespace-pre-wrap font-mono text-[10px] text-[#81c995] leading-normal opacity-90 max-h-[80px] overflow-hidden">
@@ -843,7 +888,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                   <ReactCompareSlider
                     className="w-full h-full"
                     itemOne={
-                      <div className="w-full h-full bg-[#0d0f14] flex items-center justify-center p-4 select-none">
+                      <div className="w-full h-full bg-background flex items-center justify-center p-4 select-none">
                         <img
                           src={sketch.imageDataUrl}
                           alt={sketch.title}
@@ -857,7 +902,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                       <div className="w-full h-full flex flex-col bg-white">
                         
                         {/* Chrome Tab Bar */}
-                        <div className="flex items-center justify-between px-4 py-2 bg-[#13151c] border-b border-[rgba(255,255,255,0.06)] shrink-0 select-none">
+                        <div className="flex items-center justify-between px-4 py-2 bg-[#13151c] border-b border-border shrink-0 select-none">
                           <div className="flex items-center gap-3">
                             
                             {/* Window controls */}
@@ -868,30 +913,30 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                             </div>
                             
                             {/* Tab bubble */}
-                            <div className="flex items-center gap-2 px-3.5 py-1 bg-[#1a1d27] border-t border-x border-[rgba(255,255,255,0.06)] rounded-t-md text-[10px] text-white font-sans font-medium mt-1 -mb-[9px] relative">
-                              <GeminiSparkleIcon className="w-3 h-3 text-[#8ab4f8]" />
+                            <div className="flex items-center gap-2 px-3.5 py-1 bg-card border-t border-x border-border rounded-t-md text-[10px] text-foreground font-sans font-medium mt-1 -mb-[9px] relative">
+                              <GeminiSparkleIcon className="w-3 h-3 text-primary" />
                               <span>Imagica Sandbox</span>
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse ml-0.5" />
                             </div>
                           </div>
-                          <div className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">Sandbox Render</div>
+                          <div className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">Sandbox Render</div>
                         </div>
 
                         {/* Chrome Address Bar */}
-                        <div className="flex items-center gap-3 px-4 py-1.5 bg-[#1a1d27] border-b border-[rgba(255,255,255,0.06)] shrink-0 select-none">
-                          <div className="flex items-center gap-2 text-slate-500">
+                        <div className="flex items-center gap-3 px-4 py-1.5 bg-card border-b border-border shrink-0 select-none">
+                          <div className="flex items-center gap-2 text-muted-foreground">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3 h-3 opacity-60">
                               <path d="M19 12H5M12 19l-7-7 7-7" />
                             </svg>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3 h-3 opacity-60">
                               <path d="M5 12h14M12 5l7 7-7 7" />
                             </svg>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3 h-3 opacity-80 hover:text-white cursor-pointer ml-0.5">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3 h-3 opacity-80 hover:text-foreground cursor-pointer ml-0.5">
                               <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
                             </svg>
                           </div>
 
-                          <div className="flex-1 flex items-center gap-2 bg-[#0d0f14]/80 border border-[rgba(255,255,255,0.06)] rounded-full px-3 py-0.5 text-[10px] text-slate-400 font-mono">
+                          <div className="flex-1 flex items-center gap-2 bg-background/80 border border-border rounded-full px-3 py-0.5 text-[10px] text-muted-foreground font-mono">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3 h-3 text-emerald-400 shrink-0">
                               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -901,7 +946,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
                           <button
                             onClick={() => window.open(`/preview/${sketch.id}`, "_blank")}
-                            className="p-1 rounded hover:bg-[rgba(255,255,255,0.04)] text-slate-400 hover:text-white transition-colors cursor-pointer"
+                            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                             title="Open preview in new tab"
                           >
                             <ExternalLink className="w-3 h-3" />
@@ -917,7 +962,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                         />
 
                         {/* Bottom Status bar */}
-                        <div className="px-4 py-1.5 border-t border-[rgba(255,255,255,0.06)] bg-[#13151c] flex items-center justify-between text-[9px] text-slate-500 shrink-0">
+                        <div className="px-4 py-1.5 border-t border-border bg-[#13151c] flex items-center justify-between text-[9px] text-muted-foreground shrink-0">
                           <div className="flex items-center gap-1.5">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                             <span>Rendered with Gemini Vision</span>
@@ -934,15 +979,15 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         </div>
 
         {/* 7. Chat Refinement Sidebar (Google Gemini Chat style) */}
-        <div className="w-full lg:w-[380px] shrink-0 flex flex-col bg-[#1a1d27]/40 border border-[rgba(255,255,255,0.08)] rounded-xl overflow-hidden shadow-xl">
+        <div className="w-full lg:w-[380px] shrink-0 flex flex-col bg-card/40 border border-border rounded-xl overflow-hidden shadow-xl">
           
           {/* Sidebar Chat Header */}
-          <div className="p-4 border-b border-[rgba(255,255,255,0.08)] bg-[#1a1d27]/40 flex items-center justify-between select-none">
+          <div className="p-4 border-b border-border bg-card/40 flex items-center justify-between select-none">
             <div className="flex items-center gap-2">
-              <GeminiSparkleIcon className="w-4 h-4 text-[#8ab4f8]" />
-              <span className="font-semibold text-xs tracking-normal text-white">Gemini Refiner Chat</span>
+              <GeminiSparkleIcon className="w-4 h-4 text-primary" />
+              <span className="font-semibold text-xs tracking-normal text-foreground">Gemini Refiner Chat</span>
             </div>
-            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">v2.5</div>
+            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">v2.5</div>
           </div>
 
           {/* Chat Messages Console */}
@@ -951,20 +996,20 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               
               // Empty State
               <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3 opacity-90 select-none">
-                <div className="w-10 h-10 rounded-full bg-[rgba(138,180,248,0.08)] border border-[rgba(138,180,248,0.15)] flex items-center justify-center">
-                  <Brain className="w-5 h-5 text-[#8ab4f8]" />
+                <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <Brain className="w-5 h-5 text-primary" />
                 </div>
                 <div className="space-y-1.5">
-                  <h4 className="text-xs font-semibold text-white">Interactive Refinement</h4>
-                  <p className="text-[10px] text-slate-400 leading-relaxed max-w-[220px] mx-auto">
+                  <h4 className="text-xs font-semibold text-foreground">Interactive Refinement</h4>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed max-w-[220px] mx-auto">
                     Type instructions in plain english. Gemini will modify the component structure instantly!
                   </p>
-                  <div className="pt-2 text-left space-y-1 bg-[#0d0f14]/50 border border-[rgba(255,255,255,0.05)] p-3 rounded-xl text-[9px] font-mono">
-                    <p className="text-slate-500 font-sans font-bold uppercase tracking-wider mb-1">Try saying:</p>
-                    <p className="text-[#8ab4f8] cursor-pointer" onClick={() => setChatInput("Make the cards transparent with soft blue outlines")}>
+                  <div className="pt-2 text-left space-y-1 bg-background/50 border border-border p-3 rounded-xl text-[9px] font-mono">
+                    <p className="text-muted-foreground font-sans font-bold uppercase tracking-wider mb-1">Try saying:</p>
+                    <p className="text-primary cursor-pointer" onClick={() => setChatInput("Make the cards transparent with soft blue outlines")}>
                       "Make the cards transparent with soft blue outlines"
                     </p>
-                    <p className="text-[#8ab4f8] cursor-pointer mt-1" onClick={() => setChatInput("Add a sticky navigation bar with a glassmorphism style")}>
+                    <p className="text-primary cursor-pointer mt-1" onClick={() => setChatInput("Add a sticky navigation bar with a glassmorphism style")}>
                       "Add a sticky navigation bar with a glassmorphism style"
                     </p>
                   </div>
@@ -979,8 +1024,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                     
                     // User Message (Right-aligned pill blue)
                     <div className="flex flex-col items-end max-w-[85%] ml-auto">
-                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mr-1.5 select-none">You</span>
-                      <div className="p-3 bg-[#8ab4f8] text-[#0d0f14] rounded-2xl rounded-tr-none text-xs font-medium leading-relaxed shadow-sm shadow-[#8ab4f8]/5 select-all">
+                      <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mr-1.5 select-none">You</span>
+                      <div className="p-3 bg-primary text-primary-foreground rounded-2xl rounded-tr-none text-xs font-medium leading-relaxed shadow-sm shadow-primary/5 select-all">
                         {msg.content}
                       </div>
                     </div>
@@ -988,12 +1033,12 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                     
                     // Gemini Response (Left-aligned white/slate next to Sparkle Avatar)
                     <div className="flex items-start gap-3.5 max-w-[85%] mr-auto">
-                      <div className="w-6.5 h-6.5 rounded-full bg-[rgba(138,180,248,0.08)] border border-[rgba(138,180,248,0.15)] flex items-center justify-center shrink-0 mt-0.5 select-none">
-                        <img src="/logo.png" className="w-3.5 h-3.5 object-contain" alt="Gemini" />
+                      <div className="w-6.5 h-6.5 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5 select-none">
+                        <img src={`${import.meta.env.BASE_URL}logo.png`} className="w-3.5 h-3.5 object-contain" alt="Gemini" />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest select-none">Gemini</span>
-                        <div className="bg-[#1a1d27]/80 border border-[rgba(255,255,255,0.06)] text-slate-200 text-xs px-3.5 py-2.5 rounded-2xl rounded-tl-none leading-relaxed select-all">
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest select-none">Gemini</span>
+                        <div className="bg-card/80 border border-border text-foreground text-xs px-3.5 py-2.5 rounded-2xl rounded-tl-none leading-relaxed select-all">
                           {msg.content}
                         </div>
                       </div>
@@ -1006,13 +1051,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             {/* Stream refining loader */}
             {isRefining && (
               <div className="flex items-start gap-3.5 max-w-[85%] mr-auto">
-                <div className="w-6.5 h-6.5 rounded-full bg-[rgba(138,180,248,0.08)] border border-[rgba(138,180,248,0.15)] flex items-center justify-center shrink-0 mt-0.5 animate-pulse">
-                  <img src="/logo.png" className="w-3.5 h-3.5 object-contain" alt="Gemini" />
+                <div className="w-6.5 h-6.5 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5 animate-pulse">
+                  <img src={`${import.meta.env.BASE_URL}logo.png`} className="w-3.5 h-3.5 object-contain" alt="Gemini" />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest select-none">Gemini</span>
-                  <div className="bg-[#1a1d27]/80 border border-[rgba(255,255,255,0.06)] text-[#8ab4f8] text-xs px-3.5 py-2.5 rounded-2xl rounded-tl-none leading-relaxed flex items-center gap-2">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0 text-[#8ab4f8]" />
+                  <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest select-none">Gemini</span>
+                  <div className="bg-card/80 border border-border text-primary text-xs px-3.5 py-2.5 rounded-2xl rounded-tl-none leading-relaxed flex items-center gap-2">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0 text-primary" />
                     Streaming refined component...
                   </div>
                 </div>
@@ -1023,20 +1068,20 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           </div>
 
           {/* Chat bottom input panel (Google Search Bar Style rounded-full) */}
-          <form onSubmit={handleSendRefinement} className="p-4 border-t border-[rgba(255,255,255,0.08)] bg-[#0d0f14] flex flex-col gap-2 shrink-0">
-            <div className="relative flex items-center bg-[#1a1d27] border border-[rgba(255,255,255,0.08)] rounded-full px-4.5 py-1 focus-within:border-[#8ab4f8] focus-within:ring-1 focus-within:ring-[#8ab4f8] transition-all">
+          <form onSubmit={handleSendRefinement} className="p-4 border-t border-border bg-background flex flex-col gap-2 shrink-0">
+            <div className="relative flex items-center bg-card border border-border rounded-full px-4.5 py-1 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
               <input
                 type="text"
                 placeholder={isStreaming || isRefining ? "Analyzing component..." : "Refine with Gemini..."}
                 disabled={isStreaming || isRefining}
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
-                className="flex-1 bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none py-2.5 pr-9 disabled:opacity-50"
+                className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground focus:outline-none py-2.5 pr-9 disabled:opacity-50"
               />
               <button
                 type="submit"
                 disabled={isStreaming || isRefining || !chatInput.trim()}
-                className="absolute right-1.5 p-2 rounded-full bg-[rgba(138,180,248,0.08)] hover:bg-[#8ab4f8] text-[#8ab4f8] hover:text-[#0d0f14] transition-colors disabled:opacity-30 disabled:cursor-not-allowed select-none cursor-pointer flex items-center justify-center shrink-0"
+                className="absolute right-1.5 p-2 rounded-full bg-primary/10 hover:bg-primary text-primary hover:text-primary-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed select-none cursor-pointer flex items-center justify-center shrink-0"
               >
                 {isRefining ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1055,3 +1100,4 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </div>
   );
 }
+

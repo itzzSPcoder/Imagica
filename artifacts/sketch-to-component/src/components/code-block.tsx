@@ -1,50 +1,71 @@
 import { useState } from "react";
 import { Check, Copy, Code2 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
-import { Highlight } from "prism-react-renderer";
+import { Highlight, type PrismTheme } from "prism-react-renderer";
 
-const googleDarkTheme = {
+const darkTheme: PrismTheme = {
   plain: {
     color: "#e8eaed",
-    backgroundColor: "#1a1d27"
+    backgroundColor: "transparent",
   },
   styles: [
     {
       types: ["comment", "prolog", "doctype", "cdata"],
-      style: {
-        color: "#9aa0a6",
-        fontStyle: "italic" as const
-      }
+      style: { color: "#9aa0a6", fontStyle: "italic" as const },
     },
     {
       types: ["builtin", "changed", "keyword", "tag-id", "operator", "meta", "property"],
-      style: {
-        color: "#8ab4f8"
-      }
+      style: { color: "#6366f1" },
     },
     {
       types: ["string", "attr-value", "char", "number", "inserted"],
-      style: {
-        color: "#81c995"
-      }
+      style: { color: "#059669" },
     },
     {
       types: ["function", "class-name", "attr-name", "selector", "variable"],
-      style: {
-        color: "#c58af9"
-      }
+      style: { color: "#9333ea" },
     },
     {
       types: ["punctuation"],
-      style: {
-        color: "#9aa0a6"
-      }
-    }
-  ]
+      style: { color: "#9aa0a6" },
+    },
+  ],
+};
+
+const lightTheme: PrismTheme = {
+  plain: {
+    color: "#1e1b4b",
+    backgroundColor: "transparent",
+  },
+  styles: [
+    {
+      types: ["comment", "prolog", "doctype", "cdata"],
+      style: { color: "#64748b", fontStyle: "italic" as const },
+    },
+    {
+      types: ["builtin", "changed", "keyword", "tag-id", "operator", "meta", "property"],
+      style: { color: "#4f46e5" },
+    },
+    {
+      types: ["string", "attr-value", "char", "number", "inserted"],
+      style: { color: "#047857" },
+    },
+    {
+      types: ["function", "class-name", "attr-name", "selector", "variable"],
+      style: { color: "#7c3aed" },
+    },
+    {
+      types: ["punctuation"],
+      style: { color: "#64748b" },
+    },
+  ],
 };
 
 export function CodeBlock({ code, language = "tsx" }: { code: string; language?: string }) {
   const [copied, setCopied] = useState(false);
+  const { resolvedTheme } = useTheme();
+  const prismTheme = resolvedTheme === "dark" ? darkTheme : lightTheme;
 
   const copyToClipboard = async () => {
     await navigator.clipboard.writeText(code);
@@ -55,37 +76,36 @@ export function CodeBlock({ code, language = "tsx" }: { code: string; language?:
   const prismLang = language.includes("html") ? "html" : "tsx";
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#1a1d27]">
-      
-      {/* Code Header Bar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-[rgba(255,255,255,0.06)] bg-[#13151c] shrink-0">
-        <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
-          <Code2 className="w-3.5 h-3.5 text-[#8ab4f8]" />
+    <div className="flex h-full w-full flex-col bg-card">
+      <div className="flex shrink-0 items-center justify-between border-b border-border bg-muted/50 px-4 py-2">
+        <div className="flex items-center gap-2 font-mono text-xs text-muted-foreground">
+          <Code2 className="h-3.5 w-3.5 text-primary" />
           <span>generated-component.{prismLang === "html" ? "html" : "tsx"}</span>
         </div>
-        <Button 
-          variant="ghost" 
-          size="sm" 
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={copyToClipboard}
-          className="h-7 px-2.5 rounded-full text-xs text-slate-400 hover:text-white hover:bg-[rgba(255,255,255,0.04)] cursor-pointer select-none"
+          className="h-7 cursor-pointer select-none rounded-full px-2.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
         >
           {copied ? (
-            <Check className="w-3.5 h-3.5 mr-1 text-emerald-400" />
+            <Check className="mr-1 h-3.5 w-3.5 text-emerald-500" />
           ) : (
-            <Copy className="w-3.5 h-3.5 mr-1" />
+            <Copy className="mr-1 h-3.5 w-3.5" />
           )}
           {copied ? "Copied" : "Copy code"}
         </Button>
       </div>
 
-      {/* Code Viewer Panel */}
-      <div className="flex-1 overflow-auto p-4 text-xs font-mono leading-relaxed relative group scrollbar-thin">
-        <Highlight theme={googleDarkTheme} code={code} language={prismLang}>
+      <div className="group relative flex-1 overflow-auto p-4 font-mono text-xs leading-relaxed scrollbar-thin">
+        <Highlight theme={prismTheme} code={code} language={prismLang}>
           {({ className, style, tokens, getLineProps, getTokenProps }) => (
-            <pre className={`${className} bg-transparent m-0 min-w-full`} style={style}>
+            <pre className={`${className} m-0 min-w-full bg-transparent`} style={style}>
               {tokens.map((line, i) => (
                 <div key={i} {...getLineProps({ line })} className="table-row">
-                  <span className="table-cell text-right pr-4 select-none opacity-20 text-slate-400 w-8 text-[11px]">{i + 1}</span>
+                  <span className="table-cell w-8 select-none pr-4 text-right text-[11px] text-muted-foreground/40">
+                    {i + 1}
+                  </span>
                   <span className="table-cell whitespace-pre-wrap">
                     {line.map((token, key) => (
                       <span key={key} {...getTokenProps({ token })} />

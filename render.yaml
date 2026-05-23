@@ -1,0 +1,23 @@
+# Render Blueprint — https://dashboard.render.com/blueprints
+# Connect repo: https://github.com/itzzSPcoder/Imagica
+# Then add custom domain: imagicasite.xyz
+
+services:
+  - type: web
+    name: imagica
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SERVE_STATIC
+        value: "true"
+      - key: CORS_ORIGINS
+        value: https://imagicasite.xyz,https://www.imagicasite.xyz
+      # Optional — free Postgres from https://neon.tech
+      # - key: DATABASE_URL
+      #   sync: false
+      # Optional server-side Gemini key (users can also set key in the app UI)
+      # - key: GEMINI_API_KEY
+      #   sync: false

@@ -6,6 +6,8 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
+import logoUrl from "@/assets/logo.svg";
 
 const DEFAULT_MODEL = "gemini-2.0-flash";
 const MODEL_MIGRATION_KEY = "gemini_model_migrated_2_0";
@@ -90,7 +92,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   // Handle global Run button click
   const handleGlobalRun = () => {
     // If on homepage
-    if (location === "/") {
+    if (location === "/studio") {
       const genBtn = document.getElementById("generate-btn");
       if (genBtn) genBtn.click();
     } else if (isSketchDetail) {
@@ -100,40 +102,42 @@ export function Layout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#0d0f14] text-foreground flex flex-col font-sans">
+    <div className="flex min-h-screen flex-col bg-background font-sans text-foreground">
       
       {/* 1. Top Navigation Bar (Google AI Studio style) */}
-      <header className="h-14 border-b border-[rgba(255,255,255,0.08)] bg-[#0d0f14] flex items-center justify-between px-6 sticky top-0 z-50">
+      <header className="sticky top-0 z-50 flex h-14 items-center justify-between border-b border-border bg-background px-6">
         
         {/* Left: Branding */}
         <Link href="/">
-          <div className="flex items-center gap-2.5 cursor-pointer select-none">
-            <img src="/logo.png" alt="Imagica Logo" className="w-6 h-6 object-contain" />
-            <span className="font-sans font-semibold text-lg tracking-normal text-white">Imagica</span>
-            <div className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[rgba(138,180,248,0.08)] border border-[rgba(138,180,248,0.15)] text-[10px] font-medium text-[#8ab4f8]">
-              <Sparkles className="w-2.5 h-2.5 text-[#8ab4f8]" />
-              Built on Google
+          <div className="flex cursor-pointer select-none items-center gap-2.5">
+            <img src={logoUrl} alt="Imagica" className="h-8 w-8 object-contain bg-transparent" />
+            <span className="font-headline text-lg font-semibold tracking-normal text-foreground">
+              Imagica
+            </span>
+            <div className="hidden items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary sm:inline-flex">
+              <Sparkles className="h-2.5 w-2.5 text-primary" />
+              Studio
             </div>
           </div>
         </Link>
 
         {/* Center: Horizontal pill-shaped tab switcher */}
-        <div className="flex items-center bg-[rgba(255,255,255,0.04)] p-1 rounded-full border border-[rgba(255,255,255,0.06)]">
-          <Link href="/">
-            <button className={`px-4 py-1.5 rounded-full text-xs transition-all font-medium select-none ${
-              location === "/" 
-                ? "bg-[#1a1d27] text-[#8ab4f8] shadow-sm border border-[rgba(255,255,255,0.06)]" 
-                : "text-slate-400 hover:text-white"
+        <div className="flex items-center rounded-full border border-border bg-muted/40 p-1">
+          <Link href="/studio">
+            <button className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all select-none ${
+              location === "/studio" 
+                ? "nav-pill-active bg-card" 
+                : "nav-pill"
             }`}>
               Convert
             </button>
           </Link>
 
           <Link href="/history">
-            <button className={`px-4 py-1.5 rounded-full text-xs transition-all font-medium select-none ${
+            <button className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all select-none ${
               location.startsWith("/history") 
-                ? "bg-[#1a1d27] text-[#8ab4f8] shadow-sm border border-[rgba(255,255,255,0.06)]" 
-                : "text-slate-400 hover:text-white"
+                ? "nav-pill-active bg-card" 
+                : "nav-pill"
             }`}>
               History
             </button>
@@ -142,10 +146,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <Link href={sketchId ? `/sketch/${sketchId}` : "#"}>
             <button 
               disabled={!isSketchDetail}
-              className={`px-4 py-1.5 rounded-full text-xs transition-all font-medium select-none ${
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all select-none ${
                 isSketchDetail 
-                  ? "bg-[#1a1d27] text-[#8ab4f8] shadow-sm border border-[rgba(255,255,255,0.06)]" 
-                  : "text-slate-600 cursor-not-allowed"
+                  ? "nav-pill-active bg-card" 
+                  : "cursor-not-allowed text-muted-foreground/50"
               }`}
             >
               Workbench
@@ -155,19 +159,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
         {/* Right: Settings + Run button */}
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           <button
             onClick={() => setApiKeyModalOpen(true)}
-            className="hidden sm:inline-flex items-center justify-center w-9 h-9 rounded-full border border-[rgba(255,255,255,0.08)] text-slate-300 hover:text-white hover:border-[#8ab4f8]/60 transition-colors"
+            className="hidden h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground sm:inline-flex"
             aria-label="Gemini API key settings"
           >
             <Settings className="w-4 h-4" />
           </button>
           <button 
             onClick={handleGlobalRun}
-            className="hidden sm:inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#8ab4f8] text-[#0d0f14] text-xs font-semibold hover:bg-[#a8c7fa] transition-colors shadow-sm select-none"
+            className="hidden items-center gap-2 rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition-colors hover:opacity-90 sm:inline-flex select-none"
           >
             Run
-            <span className="text-[10px] opacity-75 font-normal tracking-wide px-1.5 py-0.5 rounded bg-[rgba(13,15,20,0.15)]">
+            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-normal tracking-wide opacity-75">
               Ctrl+Enter
             </span>
           </button>
@@ -175,15 +180,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </header>
 
       <Dialog open={apiKeyModalOpen} onOpenChange={setApiKeyModalOpen}>
-        <DialogContent className="bg-[#141720] border border-[rgba(255,255,255,0.08)] text-white">
+        <DialogContent className="border border-border bg-card text-foreground">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-white">
-              <Key className="w-4 h-4 text-[#8ab4f8]" />
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <Key className="w-4 h-4 text-primary" />
               Gemini API Key
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground">
               Paste your Gemini API key to use your own quota for generation and refinement.
             </p>
             <Input
@@ -191,14 +196,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
               value={apiKeyValue}
               onChange={(e) => setApiKeyValue(e.target.value)}
               placeholder="AIza..."
-              className="bg-[#0d0f14] border border-[rgba(255,255,255,0.08)] text-white"
+              className="bg-background border border-border text-foreground"
             />
           </div>
           <DialogFooter className="gap-2 sm:gap-2">
-            <Button variant="secondary" onClick={clearApiKey} className="bg-[#1a1d27] text-slate-200 hover:bg-[#232736]">
+            <Button variant="secondary" onClick={clearApiKey} className="bg-card text-foreground hover:bg-muted">
               Clear
             </Button>
-            <Button onClick={saveApiKey} className="bg-[#8ab4f8] text-[#0d0f14] hover:bg-[#a8c7fa]">
+            <Button onClick={saveApiKey} className="bg-primary text-primary-foreground hover:opacity-90">
               <Save className="w-4 h-4 mr-2" />
               Save
             </Button>
@@ -210,18 +215,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <div className="flex flex-1 flex-col md:flex-row min-h-[calc(100vh-3.5rem)]">
         
         {/* 2. Sidebar (Google Labs / Gemini App style) */}
-        <aside className="w-full md:w-[260px] border-r border-[rgba(255,255,255,0.08)] bg-[#0d0f14] flex flex-col justify-between sticky top-14 h-[calc(100vh-3.5rem)] shrink-0 hidden md:flex">
+        <aside className="w-full md:w-[260px] border-r border-border bg-background flex flex-col justify-between sticky top-14 h-[calc(100vh-3.5rem)] shrink-0 hidden md:flex">
           
           <div className="flex-1 py-6 px-4 space-y-6">
             
             {/* Nav Group */}
             <div className="space-y-1.5">
-              <div className="text-[10px] font-bold text-slate-500 tracking-widest uppercase px-3 mb-2">Navigation</div>
-              <Link href="/">
+              <div className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase px-3 mb-2">Navigation</div>
+              <Link href="/studio">
                 <div className={`flex items-center gap-3 px-3.5 py-2.5 rounded-full transition-all cursor-pointer select-none ${
-                  location === "/" 
-                    ? "bg-[rgba(138,180,248,0.12)] text-[#8ab4f8] font-medium" 
-                    : "text-slate-400 hover:bg-[rgba(138,180,248,0.06)] hover:text-white"
+                  location === "/studio" 
+                    ? "bg-primary/10 text-primary font-medium" 
+                    : "text-muted-foreground hover:bg-primary/5 hover:text-foreground"
                 }`}>
                   <Layers className="w-4 h-4" />
                   <span className="text-sm">Converter</span>
@@ -231,8 +236,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <Link href="/history">
                 <div className={`flex items-center gap-3 px-3.5 py-2.5 rounded-full transition-all cursor-pointer select-none ${
                   location.startsWith("/history") || location.startsWith("/sketch")
-                    ? "bg-[rgba(138,180,248,0.12)] text-[#8ab4f8] font-medium" 
-                    : "text-slate-400 hover:bg-[rgba(138,180,248,0.06)] hover:text-white"
+                    ? "bg-primary/10 text-primary font-medium" 
+                    : "text-muted-foreground hover:bg-primary/5 hover:text-foreground"
                 }`}>
                   <HistoryIcon className="w-4 h-4" />
                   <span className="text-sm">History Log</span>
@@ -241,28 +246,28 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* Subtle System Stats (Subtle text labels) */}
-            <div className="space-y-3 px-3 pt-4 border-t border-[rgba(255,255,255,0.04)]">
+            <div className="space-y-3 px-3 pt-4 border-t border-border">
               <div className="flex items-center gap-1.5">
-                <Activity className="w-3.5 h-3.5 text-slate-500" />
-                <span className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">System Stats</span>
+                <Activity className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase">System Stats</span>
               </div>
               
               {statsLoading ? (
                 <div className="space-y-2">
-                  <Skeleton className="h-3 w-full bg-[rgba(255,255,255,0.04)]" />
-                  <Skeleton className="h-3 w-2/3 bg-[rgba(255,255,255,0.04)]" />
+                  <Skeleton className="h-3 w-full bg-muted" />
+                  <Skeleton className="h-3 w-2/3 bg-muted" />
                 </div>
               ) : stats ? (
-                <div className="space-y-2.5 text-xs text-slate-400">
+                <div className="space-y-2.5 text-xs text-muted-foreground">
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Total Generated</span>
-                    <span className="font-medium text-white">{stats.total}</span>
+                    <span className="text-muted-foreground">Total Generated</span>
+                    <span className="font-medium text-foreground">{stats.total}</span>
                   </div>
                   <div className="space-y-1.5">
                     {Object.entries(stats.byFramework || {}).map(([fw, count]) => (
                       <div key={fw} className="flex items-center justify-between text-[11px]">
-                        <span className="text-slate-500 capitalize">{fw}</span>
-                        <span className="text-slate-300 font-mono">{count as number}</span>
+                        <span className="text-muted-foreground capitalize">{fw}</span>
+                        <span className="text-foreground/80 font-mono">{count as number}</span>
                       </div>
                     ))}
                   </div>
@@ -272,31 +277,31 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Bottom Section: Gemini Model Selector */}
-          <div className="p-4 border-t border-[rgba(255,255,255,0.08)] bg-[#0d0f14] relative">
-            <div className="text-[10px] font-bold text-slate-500 tracking-widest uppercase px-1 mb-2">Active AI Model</div>
+          <div className="p-4 border-t border-border bg-background relative">
+            <div className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase px-1 mb-2">Active AI Model</div>
             
             <button 
               onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-[#1a1d27] border border-[rgba(255,255,255,0.08)] text-xs text-white hover:border-[#8ab4f8]/50 transition-all font-mono select-none"
+              className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-card border border-border text-xs text-foreground hover:border-primary/50 transition-all font-mono select-none"
             >
               <div className="flex items-center gap-2">
                 <GeminiSparkleIcon className="w-3.5 h-3.5 shrink-0" />
                 <span>{selectedModel}</span>
               </div>
-              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${modelDropdownOpen ? "rotate-180" : ""}`} />
+              <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${modelDropdownOpen ? "rotate-180" : ""}`} />
             </button>
 
             {/* Model Dropdown Picker (Google style) */}
             {modelDropdownOpen && (
-              <div className="absolute bottom-16 left-4 right-4 bg-[#1a1d27] border border-[rgba(255,255,255,0.12)] rounded-lg shadow-xl py-1.5 z-50">
+              <div className="absolute bottom-16 left-4 right-4 bg-card border border-border rounded-lg shadow-xl py-1.5 z-50">
                 {["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.5-pro"].map((model) => (
                   <button
                     key={model}
                     onClick={() => selectModel(model)}
                     className={`w-full text-left px-3 py-2 text-xs font-mono transition-colors flex items-center gap-2 ${
                       selectedModel === model 
-                        ? "bg-[rgba(138,180,248,0.12)] text-[#8ab4f8]" 
-                        : "text-slate-300 hover:bg-[rgba(255,255,255,0.04)]"
+                        ? "bg-primary/10 text-primary" 
+                        : "text-foreground/80 hover:bg-muted"
                     }`}
                   >
                     <GeminiSparkleIcon className="w-3 h-3 shrink-0" />
@@ -307,7 +312,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             )}
 
             {/* Powered by Gemini Badge with Shine */}
-            <div className="mt-4 flex items-center justify-center gap-1.5 py-1 px-3 rounded-full bg-[rgba(138,180,248,0.04)] border border-[rgba(138,180,248,0.08)]">
+            <div className="mt-4 flex items-center justify-center gap-1.5 py-1 px-3 rounded-full bg-primary/5 border border-primary/15">
               <GeminiSparkleIcon className="w-3 h-3" />
               <span className="text-[10px] font-semibold tracking-wide gemini-text-shimmer">
                 Powered by Gemini
@@ -318,7 +323,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <div className="mt-4">
               <button
                 onClick={() => setApiKeyModalOpen(true)}
-                className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-full border border-[rgba(255,255,255,0.08)] bg-transparent text-[10px] font-bold text-slate-400 hover:text-white hover:bg-[rgba(255,255,255,0.04)] transition-all select-none cursor-pointer uppercase tracking-wider"
+                className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-full border border-border bg-transparent text-[10px] font-bold text-muted-foreground hover:text-foreground hover:bg-muted transition-all select-none cursor-pointer uppercase tracking-wider"
               >
                 <Key className="w-3 h-3" />
                 API Key Settings
@@ -328,30 +333,31 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </aside>
 
         {/* Mobile Nav Top Bar */}
-        <div className="md:hidden border-b border-[rgba(255,255,255,0.08)] bg-[#0d0f14] p-3 flex items-center justify-between sticky top-14 z-40">
+        <div className="md:hidden border-b border-border bg-background p-3 flex items-center justify-between sticky top-14 z-40">
           <div className="flex gap-2">
-            <Link href="/">
-              <div className={`px-3 py-1 rounded-full text-xs font-medium ${location === "/" ? "bg-[rgba(138,180,248,0.12)] text-[#8ab4f8]" : "text-slate-400"}`}>
+            <Link href="/studio">
+              <div className={`px-3 py-1 rounded-full text-xs font-medium ${location === "/studio" ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
                 Converter
               </div>
             </Link>
             <Link href="/history">
-              <div className={`px-3 py-1 rounded-full text-xs font-medium ${location.startsWith("/history") || location.startsWith("/sketch") ? "bg-[rgba(138,180,248,0.12)] text-[#8ab4f8]" : "text-slate-400"}`}>
+              <div className={`px-3 py-1 rounded-full text-xs font-medium ${location.startsWith("/history") || location.startsWith("/sketch") ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
                 History
               </div>
             </Link>
           </div>
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <button
               onClick={() => setApiKeyModalOpen(true)}
-              className="flex items-center justify-center w-9 h-9 rounded-full border border-[rgba(255,255,255,0.08)] text-slate-300 hover:text-white hover:border-[#8ab4f8]/60 transition-colors"
+              className="flex items-center justify-center w-9 h-9 rounded-full border border-border text-foreground/80 hover:text-foreground hover:border-primary/60 transition-colors"
               aria-label="Gemini API key settings"
             >
               <Settings className="w-4 h-4" />
             </button>
             <button 
               onClick={handleGlobalRun}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#8ab4f8] text-[#0d0f14] text-xs font-semibold hover:bg-[#a8c7fa]"
+              className="flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
             >
               Run
             </button>
@@ -359,17 +365,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* 3. Main Content View Area */}
-        <main className="flex-1 overflow-x-hidden bg-[#0d0f14] relative">
+        <main className="flex-1 overflow-x-hidden bg-background relative">
           {children}
         </main>
       </div>
 
       {/* Built with Google AI Footer badge */}
-      <footer className="py-2.5 px-6 border-t border-[rgba(255,255,255,0.04)] bg-[#0a0c10] flex items-center justify-between text-[11px] text-slate-500 shrink-0">
+      <footer className="flex shrink-0 items-center justify-between border-t border-border bg-background px-6 py-2.5 text-[11px] text-muted-foreground">
         <div>&copy; {new Date().getFullYear()} Imagica Engine</div>
         <div className="flex items-center gap-1 select-none">
           <span>Built with</span>
-          <span className="font-semibold text-slate-400">Google AI</span>
+          <span className="font-semibold text-muted-foreground">Google AI</span>
         </div>
       </footer>
     </div>
