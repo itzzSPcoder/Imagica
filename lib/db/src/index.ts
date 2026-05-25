@@ -145,7 +145,20 @@ function createMemoryDb() {
           const builder = {
             where(condition: unknown) {
               result = result.filter((row) => matchesCondition(tableName, row, condition));
-              return Promise.resolve([...result]);
+              const queryResult = {
+                orderBy() {
+                  result = [...result].sort((a, b) => {
+                    const aDate = a["createdAt"] instanceof Date ? a["createdAt"].getTime() : 0;
+                    const bDate = b["createdAt"] instanceof Date ? b["createdAt"].getTime() : 0;
+                    return tableName === "messages" ? aDate - bDate : bDate - aDate;
+                  });
+                  return Promise.resolve([...result]);
+                },
+                then(resolve: (value: Row[]) => unknown, reject?: (reason: unknown) => unknown) {
+                  return Promise.resolve([...result]).then(resolve, reject);
+                },
+              };
+              return queryResult;
             },
             orderBy() {
               result = [...result].sort((a, b) => {
