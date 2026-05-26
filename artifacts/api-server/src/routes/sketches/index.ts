@@ -242,14 +242,29 @@ function parseGeminiResponse(rawText: string, framework: string): ParsedResult {
   let jsonStr = "";
   let remainingText = text;
 
-  // Try to find a JSON block wrapped in \`\`\`json ... \`\`\`
+  // Check if there is a '{' near the start of the response. If not, this is already pure code
+  const firstBraceIndex = text.indexOf("{");
+  const isJsonProposed = firstBraceIndex !== -1 && firstBraceIndex < 120; // Allow 120 margin for markdown code fence headers
+
+  if (!isJsonProposed) {
+    return {
+      analysis: {
+        elements: [],
+        layout: "Generated from uploaded sketch",
+        colorScheme: "unknown",
+        complexity: "medium",
+      },
+      code: text,
+    };
+  }
+
+  // Try to find a JSON block wrapped in ```json ... ```
   const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
   if (jsonMatch) {
     jsonStr = jsonMatch[1].trim();
     remainingText = text.replace(jsonMatch[0], "").trim();
   } else {
-    // If not wrapped in \`\`\`json, look for the first balanced curly braces
-    const firstBraceIndex = text.indexOf("{");
+    // If not wrapped in ```json, look for the first balanced curly braces
     if (firstBraceIndex !== -1) {
       let braceCount = 0;
       let endBraceIndex = -1;
@@ -320,8 +335,8 @@ function parseGeminiResponse(rawText: string, framework: string): ParsedResult {
     code = codeBlockMatch[1].trim();
   } else {
     code = code
-      .replace(/^```[a-zA-Z]*\s*/m, "")
-      .replace(/\\s*```\\s*$/m, "")
+      .replace(/^```[a-zA-Z]*\s*/gm, "")
+      .replace(/\s*```\s*$/gm, "")
       .trim();
   }
 
@@ -592,7 +607,7 @@ router.get("/sketches/:id/stream", async (req, res): Promise<void> => {
   req.log.info({ id: sketch.id }, "Starting real-time code generation stream");
 
   let fullCode = "";
-  const analysisResult = {
+  let streamedAnalysis: any = {
     elements: [],
     layout: "Generated from uploaded sketch",
     colorScheme: "unknown",
@@ -663,6 +678,7 @@ router.get("/sketches/:id/stream", async (req, res): Promise<void> => {
                 if (foundEnd !== -1) {
                   const jsonPart = buffer.substring(0, foundEnd + 1);
                   const parsed = parseGeminiResponse(jsonPart, sketch.framework);
+                  streamedAnalysis = parsed.analysis;
                   res.write(`data: ${JSON.stringify({ type: "analysis", analysis: parsed.analysis })}\n\n`);
                   
                   let remaining = buffer.substring(foundEnd + 1).trim();
@@ -691,6 +707,7 @@ router.get("/sketches/:id/stream", async (req, res): Promise<void> => {
 
         if (!jsonParsed) {
           const parsed = parseGeminiResponse(buffer, sketch.framework);
+          streamedAnalysis = parsed.analysis;
           res.write(`data: ${JSON.stringify({ type: "analysis", analysis: parsed.analysis })}\n\n`);
           fullCode = parsed.code;
           res.write(`data: ${JSON.stringify({ type: "chunk", content: parsed.code })}\n\n`);
@@ -715,14 +732,12 @@ router.get("/sketches/:id/stream", async (req, res): Promise<void> => {
       throw lastError;
     }
 
-    const parsedData = parseGeminiResponse(fullCode, sketch.framework);
-
-    // Save final code and analysis to the DB
+    // Save final code and analysis directly to DB, avoiding double parsing
     await db
       .update(sketchesTable)
       .set({
-        generatedCode: parsedData.code,
-        analysis: JSON.stringify(parsedData.analysis),
+        generatedCode: fullCode.trim(),
+        analysis: JSON.stringify(streamedAnalysis),
       })
       .where(eq(sketchesTable.id, sketch.id));
 
