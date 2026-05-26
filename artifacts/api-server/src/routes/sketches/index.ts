@@ -136,6 +136,7 @@ OUTPUT RULES — read every rule carefully:
 7. Use realistic placeholder text and data.
 8. Every opened HTML tag must be properly closed. Self-closing tags (input, img, br, hr) must use correct HTML5 syntax.
 9. The document must be visually complete — do NOT truncate or omit any section.
+10. TOKEN EFFICIENCY & COMPLETENESS: Gemini has a strict output token limit. To prevent truncation and ensure the file is 100% complete and fully closed, keep code extremely clean. Avoid long/complex SVG path coordinates (use simple clean SVGs or Unicode icons instead). You MUST output the ENTIRE working HTML file from <!DOCTYPE html> to </html>. Never truncate, omit sections, or leave any tag unfinished.
 
 ${aestheticsAndImagesGuide}`;
   } else if (isShadcn) {
@@ -172,6 +173,7 @@ OUTPUT RULES — read every rule carefully:
 12. Every inline SVG must have all path d attributes fully written out — no "..." or partial paths.
 13. The return statement must close with ); and the function with } before the export line.
 14. VERIFY before finalising: all opening tags have closing tags, no syntax errors, the component compiles.
+15. TOKEN EFFICIENCY & COMPLETENESS: To prevent output limit truncation, keep the component code clean and structured. Avoid overly nested elements or extremely long inline SVG path coordinates (use clean standard SVGs or Lucide icons instead). You MUST output the entire file from imports to export default. Never truncate or leave the code unfinished.
 
 ${aestheticsAndImagesGuide}`;
   } else if (isMern) {
@@ -193,6 +195,7 @@ OUTPUT RULES — read every rule carefully:
 7. The Express server should use cors and express.json middleware.
 8. Every file must be COMPLETE — do NOT truncate.
 9. VERIFY: all tags closed, all braces balanced.
+10. TOKEN EFFICIENCY & COMPLETENESS: To prevent output limit truncation, keep all backend and frontend files concise, structured, and complete. Avoid bloated layouts or giant inline SVG paths. You MUST output the complete files. Never truncate.
 
 ${aestheticsAndImagesGuide}`;
   } else {
@@ -217,6 +220,7 @@ OUTPUT RULES — read every rule carefully:
 13. Every inline SVG must have all path d attributes fully written out — no "..." or partial paths.
 14. The return statement must close with ); and the function with } before the export line.
 15. VERIFY before finalising: all JSX tags are closed, all braces are balanced, no syntax errors.
+16. TOKEN EFFICIENCY & COMPLETENESS: To prevent output limit truncation, keep the component code clean and structured. Avoid extremely long inline SVG path coordinates (use clean standard SVGs or Unicode instead). You MUST output the complete file. Never truncate.
 
 ${aestheticsAndImagesGuide}`;
   }
