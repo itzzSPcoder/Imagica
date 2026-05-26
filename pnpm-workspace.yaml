@@ -160,6 +160,7 @@ overrides:
   esbuild: "0.27.3"
 
 allowBuilds:
+  '@clerk/shared': true
   '@google/genai': true
   esbuild: true
   protobufjs: true

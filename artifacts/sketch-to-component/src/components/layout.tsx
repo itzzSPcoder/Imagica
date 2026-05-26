@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import logoUrl from "@/assets/logo.svg";
+import { UserButton } from "@clerk/clerk-react";
 
 const DEFAULT_MODEL = "gemini-2.0-flash";
 const MODEL_MIGRATION_KEY = "gemini_model_migrated_2_0";
@@ -160,6 +161,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {/* Right: Settings + Run button */}
         <div className="flex items-center gap-3">
           <ThemeToggle />
+          <UserButton afterSignOutUrl="/" />
           <button
             onClick={() => setApiKeyModalOpen(true)}
             className="hidden h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground sm:inline-flex"
@@ -348,6 +350,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
+            <UserButton afterSignOutUrl="/" />
             <button
               onClick={() => setApiKeyModalOpen(true)}
               className="flex items-center justify-center w-9 h-9 rounded-full border border-border text-foreground/80 hover:text-foreground hover:border-primary/60 transition-colors"

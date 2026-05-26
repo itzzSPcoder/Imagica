@@ -1,8 +1,8 @@
 import { useCallback, useRef } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/theme-toggle";
 import logoUrl from "@/assets/logo.svg";
+import { useAuth } from "@clerk/clerk-react";
 
 const HERO_VIDEO_URL =
   "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260328_065045_c44942da-53c6-4804-b734-f9e07fc22e08.mp4";
@@ -24,9 +24,10 @@ function useSeamlessVideoLoop() {
 
 export default function Index() {
   const { videoRef, onTimeUpdate } = useSeamlessVideoLoop();
+  const { isSignedIn } = useAuth();
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-neutral-100 text-foreground dark:bg-background">
+    <div className="dark relative min-h-screen overflow-hidden bg-neutral-950 text-zinc-100">
       <video
         ref={videoRef}
         src={HERO_VIDEO_URL}
@@ -36,7 +37,7 @@ export default function Index() {
         playsInline
         preload="auto"
         onTimeUpdate={onTimeUpdate}
-        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-60"
       />
 
       <div className="relative z-10 flex min-h-screen flex-col">
@@ -49,26 +50,27 @@ export default function Index() {
                   alt="Imagica"
                   className="h-8 w-8 object-contain bg-transparent"
                 />
-                <span className="hidden font-headline text-lg font-semibold text-foreground sm:inline">
+                <span className="hidden font-headline text-lg font-semibold text-zinc-100 sm:inline">
                   Imagica
                 </span>
               </div>
             </Link>
 
-            <ThemeToggle />
+            {/* ThemeToggle is intentionally removed from the landing page as it is now exclusively night/dark mode. */}
+            <div className="w-9 h-9" />
           </nav>
 
-          <div className="mt-[3px] h-px w-full bg-gradient-to-r from-transparent via-foreground/20 to-transparent" />
+          <div className="mt-[3px] h-px w-full bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
         </header>
 
         <section className="flex min-h-0 flex-1 flex-col overflow-visible">
           <div className="relative flex flex-1 items-center justify-center overflow-visible px-6 py-8 sm:px-8">
             <div className="relative z-10 flex w-full max-w-5xl flex-col items-center px-2 text-center">
-              <h1 className="font-headline w-full font-normal leading-[1.02] tracking-[-0.024em] text-foreground text-[clamp(3.5rem,14vw,220px)] lg:text-[220px]">
+              <h1 className="font-headline w-full font-normal leading-[1.02] tracking-[-0.024em] text-zinc-100 text-[clamp(3.5rem,14vw,220px)] lg:text-[220px]">
                 Imagica
               </h1>
 
-              <p className="mt-[9px] max-w-lg text-lg leading-8 text-hero-sub opacity-80">
+              <p className="mt-[9px] max-w-lg text-lg leading-8 text-zinc-400 opacity-90">
                 Turn hand-drawn sketches into production-ready UI code
                 <br />
                 powered by Gemini Vision AI
@@ -76,10 +78,10 @@ export default function Index() {
 
               <Button
                 variant="heroSecondary"
-                className="mt-[25px] rounded-full px-[29px] py-[24px] text-base"
+                className="mt-[25px] rounded-full px-[29px] py-[24px] text-base bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all shadow-xl backdrop-blur-sm cursor-pointer select-none"
                 asChild
               >
-                <Link href="/studio">Get Started</Link>
+                <Link href={isSignedIn ? "/studio" : "/sign-in"}>Get Started</Link>
               </Button>
             </div>
           </div>
