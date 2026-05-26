@@ -1,5 +1,5 @@
-import { useCallback, useRef, useEffect } from "react";
-import { Link, useLocation } from "wouter";
+import { useCallback, useRef } from "react";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import logoUrl from "@/assets/logo.svg";
 import { useAuth } from "@clerk/clerk-react";
@@ -25,13 +25,6 @@ function useSeamlessVideoLoop() {
 export default function Index() {
   const { videoRef, onTimeUpdate } = useSeamlessVideoLoop();
   const { isSignedIn } = useAuth();
-  const [, setLocation] = useLocation();
-
-  useEffect(() => {
-    if (isSignedIn) {
-      setLocation("/studio");
-    }
-  }, [isSignedIn, setLocation]);
 
   return (
     <div className="dark relative min-h-screen overflow-hidden bg-neutral-950 text-zinc-100">
