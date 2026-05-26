@@ -1,5 +1,18 @@
-# 🔮 Imagica — AI Sketch-to-Component Workbench (Enterprise Edition)
+<p align="center">
+  <img src="logo.png" alt="Imagica Logo" width="120" />
+</p>
 
+<h1 align="center">🔮 Imagica</h1>
+
+<p align="center">
+  <strong>AI Sketch-to-Component Workbench (Enterprise Edition)</strong>
+</p>
+
+<p align="center">
+  🌐 <a href="https://imagicasite.xyz" target="_blank">imagicasite.xyz</a>
+</p>
+
+---
 Imagica is an elite, industrial-grade, AI-powered developer workbench that transforms hand-drawn sketches, structural wireframes, and UI screenshots into high-performance, responsive, production-ready web components. Inspired by the sleek, minimalist labs theme of Google AI Studio, Imagica integrates state-of-the-art vision models, secure authentication, live sandbox preview frames, and an optimized, token-efficient refinement chatbot.
 
 ---
