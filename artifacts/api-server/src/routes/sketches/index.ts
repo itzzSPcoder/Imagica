@@ -73,7 +73,7 @@ async function withRetry<T>(
     } catch (err: any) {
       lastError = err;
       const status = err?.status ?? err?.statusCode ?? 0;
-      const isRetryable = status === 503;
+      const isRetryable = status === 503 || status === 429 || status === 408;
       if (!isRetryable || attempt === maxRetries) {
         throw err;
       }

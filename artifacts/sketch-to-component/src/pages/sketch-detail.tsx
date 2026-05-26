@@ -260,7 +260,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     setStreamedCode("");
 
     const userApiKey = typeof window !== "undefined" ? window.localStorage.getItem("gemini_api_key") || "" : "";
-    const eventSource = new EventSource(`/api/sketches/${sketch.id}/refine?message=${encodeURIComponent(userMsg)}&apiKey=${encodeURIComponent(userApiKey)}`);
+    const userModel = typeof window !== "undefined" ? window.localStorage.getItem("gemini_model") || "gemini-2.0-flash" : "gemini-2.0-flash";
+    const eventSource = new EventSource(`/api/sketches/${sketch.id}/refine?message=${encodeURIComponent(userMsg)}&apiKey=${encodeURIComponent(userApiKey)}&model=${encodeURIComponent(userModel)}`);
 
     eventSource.onmessage = (event) => {
       try {
@@ -321,9 +322,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     setStreamError(null);
 
     const userApiKey = typeof window !== "undefined" ? window.localStorage.getItem("gemini_api_key") || "" : "";
+    const userModel = typeof window !== "undefined" ? window.localStorage.getItem("gemini_model") || "gemini-2.0-flash" : "gemini-2.0-flash";
 
     // Open connection to SSE code generation endpoint
-    const eventSource = new EventSource(`/api/sketches/${sketch.id}/stream?apiKey=${encodeURIComponent(userApiKey)}`);
+    const eventSource = new EventSource(`/api/sketches/${sketch.id}/stream?apiKey=${encodeURIComponent(userApiKey)}&model=${encodeURIComponent(userModel)}`);
 
     eventSource.onmessage = (event) => {
       try {
