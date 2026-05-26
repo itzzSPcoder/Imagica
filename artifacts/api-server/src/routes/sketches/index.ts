@@ -510,30 +510,55 @@ router.get("/sketches/:id/stream", async (req, res): Promise<void> => {
 
   res.write(`data: ${JSON.stringify({ type: "analysis", analysis: analysisResult })}\n\n`);
 
+  let lastError: any;
+  let success = false;
+
   try {
     const prompt = buildPrompt(sketch.framework, sketch.instructions);
-    const stream = await withRetry(() =>
-      client.models.generateContentStream({
-        model,
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { inlineData: { mimeType, data: base64Data } },
-              { text: prompt },
-            ],
-          },
-        ],
-        config: { maxOutputTokens: 8192 },
-      }),
-    );
 
-    for await (const chunk of stream) {
-      const text = chunk.text;
-      if (text) {
-        fullCode += text;
-        res.write(`data: ${JSON.stringify({ type: "chunk", content: text })}\n\n`);
+    for (const candidateModel of orderedGeminiModels(model)) {
+      try {
+        fullCode = ""; // Reset in case of fallback retry
+        const stream = await withRetry(() =>
+          client.models.generateContentStream({
+            model: candidateModel,
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  { inlineData: { mimeType, data: base64Data } },
+                  { text: prompt },
+                ],
+              },
+            ],
+            config: { maxOutputTokens: 8192 },
+          }),
+        );
+
+        for await (const chunk of stream) {
+          const text = chunk.text;
+          if (text) {
+            fullCode += text;
+            res.write(`data: ${JSON.stringify({ type: "chunk", content: text })}\n\n`);
+          }
+        }
+        success = true;
+        break;
+      } catch (err: any) {
+        lastError = err;
+        const status = err?.status ?? err?.statusCode ?? 0;
+        if (status !== 429) {
+          throw err;
+        }
+        req.log.warn(
+          { model: candidateModel, err: err?.message || err },
+          "Gemini model quota hit in generation stream, trying fallback model",
+        );
       }
+    }
+
+    if (!success) {
+      throw lastError;
     }
 
     // Clean up code markdown fences
@@ -552,9 +577,16 @@ router.get("/sketches/:id/stream", async (req, res): Promise<void> => {
       .where(eq(sketchesTable.id, sketch.id));
 
     res.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
-  } catch (err) {
+  } catch (err: any) {
     req.log.error({ err }, "Gemini streaming generation failed");
-    res.write(`data: ${JSON.stringify({ type: "error", message: "Generation failed" })}\n\n`);
+    const status = err?.status ?? err?.statusCode ?? 0;
+    const userMessage =
+      status === 503
+        ? "Gemini is experiencing high demand. Please try again in a few seconds."
+        : status === 429
+          ? "Rate limit reached. Please wait a moment and try again."
+          : "Generation failed. Please try again.";
+    res.write(`data: ${JSON.stringify({ type: "error", message: userMessage })}\n\n`);
   } finally {
     res.end();
   }
@@ -726,31 +758,64 @@ Make sure to output the COMPLETE refined code. Never truncate, omit sections, or
   const userApiKey = (req.headers["x-gemini-api-key"] || req.query.apiKey) as string | undefined;
   const model = getGeminiModel(req);
   const client = getGeminiClient(userApiKey);
+  let lastError: any;
+  let success = false;
+
+  for (const candidateModel of orderedGeminiModels(model)) {
+    try {
+      refinedCode = ""; // Reset in case of fallback retry
+      const stream = await withRetry(() =>
+        client.models.generateContentStream({
+          model: candidateModel,
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: refinementPrompt },
+              ],
+            },
+          ],
+          config: { maxOutputTokens: 8192 },
+        }),
+      );
+
+      for await (const chunk of stream) {
+        const text = chunk.text;
+        if (text) {
+          refinedCode += text;
+          res.write(`data: ${JSON.stringify({ type: "chunk", content: text })}\n\n`);
+        }
+      }
+      success = true;
+      break;
+    } catch (err: any) {
+      lastError = err;
+      const status = err?.status ?? err?.statusCode ?? 0;
+      if (status !== 429) {
+        throw err;
+      }
+      req.log.warn(
+        { model: candidateModel, err: err?.message || err },
+        "Gemini model quota hit in refinement stream, trying fallback model",
+      );
+    }
+  }
+
+  if (!success) {
+    req.log.error({ err: lastError }, "Gemini refinement streaming failed after trying all models");
+    const status = lastError?.status ?? lastError?.statusCode ?? 0;
+    const userMessage =
+      status === 503
+        ? "Gemini is experiencing high demand. Please try again in a few seconds."
+        : status === 429
+          ? "Rate limit reached. Please wait a moment and try again."
+          : "Refinement failed. Please try again.";
+    res.write(`data: ${JSON.stringify({ type: "error", message: userMessage })}\n\n`);
+    res.end();
+    return;
+  }
 
   try {
-    const stream = await withRetry(() =>
-      client.models.generateContentStream({
-        model,
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { text: refinementPrompt },
-            ],
-          },
-        ],
-        config: { maxOutputTokens: 8192 },
-      }),
-    );
-
-    for await (const chunk of stream) {
-      const text = chunk.text;
-      if (text) {
-        refinedCode += text;
-        res.write(`data: ${JSON.stringify({ type: "chunk", content: text })}\n\n`);
-      }
-    }
-
     const cleanRefinedCode = refinedCode
       .replace(/^```[a-zA-Z]*\s*/m, "")
       .replace(/\s*```\s*$/m, "")
@@ -771,15 +836,8 @@ Make sure to output the COMPLETE refined code. Never truncate, omit sections, or
 
     res.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
   } catch (err: any) {
-    req.log.error({ err }, "Gemini refinement streaming failed");
-    const status = err?.status ?? err?.statusCode ?? 0;
-    const userMessage =
-      status === 503
-        ? "Gemini is experiencing high demand. Please try again in a few seconds."
-        : status === 429
-          ? "Rate limit reached. Please wait a moment and try again."
-          : "Refinement failed. Please try again.";
-    res.write(`data: ${JSON.stringify({ type: "error", message: userMessage })}\n\n`);
+    req.log.error({ err }, "Failed to save refined code to DB");
+    res.write(`data: ${JSON.stringify({ type: "error", message: "Failed to save refined code" })}\n\n`);
   } finally {
     res.end();
   }
