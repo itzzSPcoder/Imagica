@@ -1,172 +1,240 @@
-# 🔮 Imagica — AI-Powered Sketch to Component Workbench
+# 🔮 Imagica — AI Sketch-to-Component Workbench (Enterprise Edition)
 
-Imagica is a breathtaking, premium, Google AI Studio-inspired sketch-to-code compiler that turns hand-drawn mockups, wireframes, and UI screenshots into production-ready web components. Powered by frontier Google Gemini multimodal models, Clerk Auth, and a blazing-fast Express+React monorepo workspace.
-
----
-
-## 🎨 Visual Preview & User Experience
-
-> [!NOTE]
-> Imagica is designed with rich, spacey modern aesthetics, elegant night mode gradients, glassmorphism card panels, and smooth tactile micro-animations to deliver a state-of-the-art developer experience.
-
-* **Google Labs UI Style**: A beautiful dark/night theme landing page utilizing seamless video loops.
-* **Pill Tab Navigation**: Sleek, modern header tab switching between **Convert (Studio)**, **History Log**, and the interactive developer **Workbench**.
-* **Live Sandbox Render**: Interactive split-pane workbench to test your generated components live in a preview frame next to their raw source code.
+Imagica is an elite, industrial-grade, AI-powered developer workbench that transforms hand-drawn sketches, structural wireframes, and UI screenshots into high-performance, responsive, production-ready web components. Inspired by the sleek, minimalist labs theme of Google AI Studio, Imagica integrates state-of-the-art vision models, secure authentication, live sandbox preview frames, and an optimized, token-efficient refinement chatbot.
 
 ---
 
-## 🚀 Key Features
+## 🏗️ System & Core Architecture Deep-Dive
 
-* 🔐 **Clerk Auth Integration**: Complete secure sign-in and sign-up flow, seamlessly locking down private routes and showing your Clerk profile badge inside the workspace header.
-* 📷 **Sketch-to-Code compiler**: Upload layout sketches via cloud-upload drag zones, file browsing, or directly snapping a picture from your camera.
-* ⚡ **Real-Time Code Streaming (SSE)**: Generates responsive code via server-sent events, showing active generation stream chunks as they compile.
-* 💬 **Gemini Chat Refiner**: A dedicated AI side-chat panel allowing you to refine the code with custom prompts (e.g. *"make it scrollable"*, *"change the theme"*).
-* 🎯 **Target Framework Selector**: Output layouts into React+Tailwind, React+shadcn/ui, Standalone HTML+Tailwind, or a Full-Stack MERN (MongoDB, Express, React, Node) application bundle.
-* ⚡ **StackBlitz Live Sandbox**: Launch code export playpens instantly on StackBlitz with a single click.
+Imagica is architected as a high-performance **pnpm monorepo workspace**. The entire ecosystem is divided into three distinct layers:
+1. **Frontend Layer**: The developer workbench interface and sandbox preview frame.
+2. **Backend Services Layer**: The Express API gate, database schema engines, and SSE stream handlers.
+3. **Shared Monorepo Libraries**: Reusable packages for Zod schemas, DB connections, API client generators, and Gemini SDK integrations.
 
 ---
 
-## 🏗️ Monorepo Architecture & Flow
+## 📊 Visual System Flows & Architecture Diagrams
 
-The entire workflow, from sketch upload to robust fallback generation and token-efficient streaming refinement, is mapped out in the architectural diagram below:
+### 1. Workspace Dependency & Monorepo Topology
+This diagram illustrates the monorepo structure and how individual applications depend on shared type-safe library workspace layers:
 
 ```mermaid
 graph TD
-    classDef frontend fill:#4f46e5,stroke:#818cf8,stroke-width:2px,color:#fff;
-    classDef backend fill:#10b981,stroke:#34d399,stroke-width:2px,color:#fff;
-    classDef database fill:#f59e0b,stroke:#fbbf24,stroke-width:2px,color:#fff;
-    classDef ai fill:#a855f7,stroke:#c084fc,stroke-width:2px,color:#fff;
+    classDef app fill:#4f46e5,stroke:#818cf8,stroke-width:2px,color:#fff;
+    classDef lib fill:#0d9488,stroke:#2dd4bf,stroke-width:2px,color:#fff;
+    classDef db fill:#d97706,stroke:#fbbf24,stroke-width:2px,color:#fff;
+    classDef ai fill:#7c3aed,stroke:#a78bfa,stroke-width:2px,color:#fff;
 
-    %% ── USER / FRONTEND LAYER ──
-    User(["👤 User Context"]) -->|1. Sign In / Auth| LandingPage["🔮 Landing Page (Clerk Auth)"]:::frontend
-    LandingPage -->|2. Redirect| Studio["💻 Convert Studio (Upload Mockup)"]:::frontend
-    Studio -->|3. POST /api/sketches| API_Gate["⚙️ Express Router Gate"]:::backend
-    
-    %% ── BACKEND CORE LAYER ──
-    subgraph Express Backend Server
-        API_Gate -->|Extract Key/Model| KeyResolver["🔑 Key & Model Resolver"]:::backend
-        KeyResolver -->|Quota Safe| FirstGen["🤖 generateCodeFromImage"]:::backend
-        
-        %% ── STREAMING & REFINE ──
-        Studio -->|4. GET /sketch/:id (SSE)| StreamEndpoint["⚡ Code Stream SSE"]:::backend
-        ChatBot["💬 Gemini Refiner Chat"] -->|5. GET /refine (SSE)| RefineEndpoint["💬 Code Refine SSE"]:::backend
-    end
+    %% Applications
+    SubComponent["💻 sketch-to-component (React Workspace App)"]:::app
+    MockupSandbox["🔬 mockup-sandbox (Preview Frame App)"]:::app
+    ApiServer["⚙️ api-server (Node/Express Backend Service)"]:::app
 
-    %% ── ROBUST FALLBACKS ──
-    FirstGen -->|Fallback Loop| ModelFlash20["gemini-2.0-flash"]:::ai
-    FirstGen -->|Fallback Loop| ModelFlash25["gemini-2.5-flash"]:::ai
-    FirstGen -->|Fallback Loop| ModelPro25["gemini-2.5-pro"]:::ai
-    
-    %% ── STREAM & REFINE WORK ──
-    StreamEndpoint -->|Includes base64 Image| GeminiStream["Gemini Stream API"]:::ai
-    RefineEndpoint -->|95% Token Optimized (No Image)| GeminiRefine["Gemini Refine API"]:::ai
+    %% Shared Packages
+    ApiClient["📦 api-client-react (Auto-Generated Hooks)"]:::lib
+    ApiZod["📦 api-zod (Type-safe Zod Schemas)"]:::lib
+    ApiSpec["📦 api-spec (OpenAPI Spec Definitions)"]:::lib
+    Database["🗄️ db (Drizzle Schema & SQLite Migration)"]:::db
+    GeminiClient["🧠 integrations-gemini-ai (Gen AI Wrapper)"]:::ai
 
-    %% ── RETRY HANDLER ──
-    GeminiStream & GeminiRefine -->|withRetry helper| RetryGate{"Retry on 429/408?"}:::backend
-    RetryGate -->|Yes: exponential backoff| GeminiStream
-    RetryGate -->|No: critical error| ErrorLog["🚨 SSE Error Event"]:::backend
-
-    %% ── DATABASE LAYER ──
-    RetryGate -->|Success: Save Code| DrizzleORM["Drizzle ORM Query"]:::database
-    DrizzleORM -->|SQLite / DB Store| SQLite[("🗄️ SQLite Database")]:::database
-    
-    %% ── RESULT FEEDBACK LOOP ──
-    SQLite -.->|Hydrate Stats/History| Workbench["🔬 Dev Workbench Sandbox"]:::frontend
-    Workbench -.->|StackBlitz Playpen| StackBlitz[("⚡ StackBlitz Sandbox")]:::frontend
-
-    class LandingPage,Studio,Workbench,StackBlitz frontend;
-    class API_Gate,KeyResolver,FirstGen,StreamEndpoint,RefineEndpoint,RetryGate,ErrorLog backend;
-    class DrizzleORM,SQLite database;
-    class ModelFlash20,ModelFlash25,ModelPro25,GeminiStream,GeminiRefine ai;
+    %% Dependencies Flows
+    SubComponent -->|Uses queries/mutations| ApiClient
+    ApiClient -->|Generates endpoints from| ApiSpec
+    ApiServer -->|Validates requests with| ApiZod
+    ApiServer -->|Queries and persists to| Database
+    ApiServer -->|Triggers multimodal LLMs via| GeminiClient
+    SubComponent -->|Embeds preview iframe of| MockupSandbox
 ```
 
-### 🧠 Advanced Engineering Optimizations Implemented:
-1. **95%+ Token-Saving Refinement Prompting**: Unlike basic tools that upload large base64 image strings (~300,000+ tokens) on every single refinement request, Imagica only uploads the sketch once. Subsequent chats are strictly text-based, decreasing latency by 5x and preventing free API quota exhaustion.
-2. **Zero-Delay Model Fallback Engine**: If the default model `gemini-2.0-flash` is rate-limited on the user's key, the backend automatically and seamlessly tries candidate fallbacks (`gemini-2.5-flash` and `gemini-2.5-pro`) to ensure generations never crash.
-3. **Exponential Backoff Retry Gate**: Standard transient rate limit errors (`429`) and timeouts (`408`) are elegantly intercepted by the server and retried using a backoff algorithm (`2s -> 4s -> 8s`) instead of failing instantly in the UI.
+---
+
+### 2. Multi-Model Robust Code Generation Pipeline
+Here is the step-by-step pipeline when a user uploads a hand-drawn sketch. Notice the recursive **Gemini Fallback Models Loop** and **Exponential Backoff Retry Gate** that ensure zero downtime:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as 👤 Developer / Designer
+    participant UI as 💻 Front-End App (React)
+    participant Server as ⚙️ Express Backend (api-server)
+    participant Auth as 🔐 Clerk Authentication
+    participant Gemini as 🧠 Google Gemini Vision API
+    participant DB as 🗄️ Database (Drizzle SQLite)
+
+    User->>UI: Upload hand-drawn UI sketch & select framework
+    UI->>Auth: Validate user session token
+    Auth-->>UI: Session token valid
+    UI->>Server: POST /api/sketches (base64 image, framework, styling instructions)
+    Note over Server: Server reads x-gemini-api-key header<br/>Falls back to environment keys if empty.
+
+    rect rgb(30, 27, 75)
+        Note over Server: [Model Fallback Loop & Retry Gate]
+        Server->>Gemini: Attempt 1: gemini-2.0-flash (Upload base64 image + layout prompt)
+        alt Case A: 429 Rate Limit / Quota Exhausted on Flash 2.0
+            Gemini-->>Server: Error 429 (Resource Exhausted)
+            Server->>Server: catch 429 -> Try next candidate model
+            Server->>Gemini: Attempt 2: gemini-2.5-flash (Execute stream compilation)
+        else Case B: Transient 503 / Network Timeout
+            Gemini-->>Server: Error 503 (Service Overloaded)
+            Server->>Server: withRetry helper waits 2s -> 4s -> 8s (Exponential Backoff)
+            Server->>Gemini: Retry Attempt
+        end
+    end
+
+    Gemini-->>Server: 200 OK: Complete React/HTML structured markup stream
+    Server->>DB: Save Sketch details (generatedCode, framework, layout analysis JSON)
+    DB-->>Server: Record created successfully
+    Server-->>UI: HTTP 201 Created: Hydrated sketch state
+    UI->>User: Launch code inside Developer Workbench (Interactive Live Sandbox)
+```
 
 ---
 
-## 🛠️ Technology Stack
+### 3. Token-Optimized Refiner Chatbot Architecture (Refine Turn)
+Unlike baseline sketch tools that upload giant base64 image payloads (~300,000+ tokens) on every single chat turns, Imagica implements a **95%+ token-saving strategy** that completely bypasses free-tier TPM (Tokens Per Minute) quotas:
 
-| Component | Framework / Library | Description |
+```mermaid
+graph TD
+    classDef regular fill:#ef4444,stroke:#f87171,stroke-width:2px,color:#fff;
+    classDef optimized fill:#10b981,stroke:#34d399,stroke-width:2px,color:#fff;
+    classDef text fill:#0d9488,stroke:#2dd4bf,stroke-width:2px,color:#fff;
+
+    %% Input Trigger
+    UserPrompt(["💬 Chatturn: 'make it scrollable nd add light theme'"]) --> Choice{Prompt Structure}
+
+    %% Regular Path
+    Choice -->|Baseline Compilers| Baseline["⚠️ Verbose Payload <br/> (Sends user text + complete code + base64 image)"]:::regular
+    Baseline -->|Token Consumption| HeavyTokens["💥 ~350,000 Tokens <br/> (Rate limit hit after 2 requests!)"]:::regular
+    HeavyTokens -->|Result| QuotaError["🚨 HTTP 429: Rate Limit Reached"]:::regular
+
+    %% Optimized Path
+    Choice -->|Imagica Refiner Engine| Imagica["✅ Optimized Payload <br/> (Sends user text + current working code only)"]:::optimized
+    Imagica -->|Token Consumption| LightTokens["⚡ ~5,000 Tokens <br/> (Incredibly light, no image upload!)"]:::optimized
+    LightTokens -->|Result| FastStream["🚀 5x Faster SSE Streaming Refinement"]:::optimized
+
+    classDef result fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#fff;
+    FastStream -->|Writes updates chunk-by-chunk| CodeUpdate["📝 Dynamic Code Sandbox Repersistence"]:::result
+```
+
+---
+
+## 🛠️ Complete Monorepo Technology Stack
+
+| Target Layer | Framework / Module | Highlights & Visual Customizations |
 |---|---|---|
-| **Frontend Core** | React 19, TypeScript | High-performance reactive UI |
-| **Styling** | Tailwind CSS v4 | Futuristic modern glassmorphism themes |
-| **Authentication** | `@clerk/clerk-react` | Enterprise grade secure user management |
-| **Routing** | `wouter` | Blazing-fast router matching wildcard routes |
-| **Backend API** | Node.js, Express, Pino | Lightweight and structured JSON APIs |
-| **Database ORM**| Drizzle ORM | Type-safe migrations and queries |
-| **AI Frontier** | `@google/genai` | Frontier vision/multimodal intelligence |
+| **Frontend Platform** | React 19, TypeScript | Strict type safety, high-performance visual states, responsive dashboard grid |
+| **Monorepo Router** | `wouter` | Blazing-fast router matching wildcards, trailing slashes normalizing, lightweight routing |
+| **Authentication** | `@clerk/clerk-react` | Secure authentication locking down private workspace routes, fully integrated layout buttons |
+| **API Backend** | Node.js, Express, Pino | Lightweight JSON API server, structured Pino logger streaming generation events |
+| **Database Engine** | Drizzle ORM, SQLite | Fast SQLite database, type-safe queries, migration catalogs |
+| **Visual Styling** | Tailwind CSS v4, Lucide | Spacey dark theme, HSL customized color palettes, seamless video loop landing page |
+| **Export Sandbox** | StackBlitz Custom SDK | One-click export playgrounds assembling components instantly in live browser Sandboxes |
 
 ---
 
-## 📁 Monorepo Workspace Structure
+## 📁 Repository Directory Structure
 
 ```
 ├── artifacts/
-│   ├── api-server/              # Express API server (ports, DB connectors, SSE routers)
-│   ├── mockup-sandbox/          # Live HTML sandbox frame preview server
-│   └── sketch-to-component/     # Front-end React application (workbench, forms, layouts)
+│   ├── api-server/              # Express API Server (ports, DB controllers, Gemini routers, fallback loops)
+│   │   ├── src/
+│   │   │   ├── routes/          # Express route definitions (sketches stats, messages, refinement streams)
+│   │   │   ├── lib/             # Drizzle SQLite database configurations and Drizzle client connectors
+│   │   │   └── index.ts         # Server entry point
+│   ├── mockup-sandbox/          # Iframe Sandboxing server compiling user components for preview
+│   └── sketch-to-component/     # Front-end workbench dashboard React client
+│       ├── src/
+│       │   ├── components/      # UI components (Header layout, settings modal, system statistics)
+│       │   ├── pages/           # Pages (Landing page, Convert workbench, sketch details, preview tabs)
+│       │   └── index.css        # Core custom-themed CSS and custom animation transitions
 ├── lib/
-│   ├── api-client-react/        # Auto-generated Tanstack Queries hooks for the frontend
-│   ├── api-spec/                # OpenAPI specification and generation configurations
-│   ├── api-zod/                 # Shared data validation Zod schemas
-│   ├── db/                      # Shared SQLite migrations and schema tables
-│   └── integrations-gemini-ai/  # Shared Google Gen AI SDK client wrappers
+│   ├── api-client-react/        # Auto-generated Tanstack Queries hooks querying the server
+│   ├── api-spec/                # Monorepo OpenAPI contracts and Orval configurations
+│   ├── api-zod/                 # Shared data validation Zod schemas (CreateSketch, Regenerate)
+│   ├── db/                      # Shared SQLite migrations and schema tables (Conversations, Messages, Sketches)
+│   └── integrations-gemini-ai/  # Shared Google Gen AI SDK client and resolution logic
 ├── package.json                 # Monorepo workspace configuration
-└── pnpm-workspace.yaml          # Monorepo dependencies catalog definitions
+└── pnpm-workspace.yaml          # Monorepo dependencies definitions
 ```
 
 ---
 
-## 🚀 Getting Started
+## ⚙️ Environment Configuration
 
-### 📋 Prerequisites
-Ensure you have **Node.js >= 24** and **pnpm** installed on your system.
+To configure local or production instances, create separate `.env` files in their respective folders:
 
-### ⚙️ Environment Configuration
-Create a `.env` file in the root workspace (which will feed the apps):
+### 1. Frontend Configuration
+Create `artifacts/sketch-to-component/.env`:
+```env
+# Clerk Publishable Key (from clerk.com dashboard)
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
+```
 
-1. For **Frontend** (`artifacts/sketch-to-component/.env`):
-   ```env
-   VITE_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
-   ```
+### 2. Backend Configuration
+Create `artifacts/api-server/.env`:
+```env
+# Clerk Secret Key (from clerk.com dashboard)
+CLERK_SECRET_KEY=sk_test_...
+```
 
-2. For **Backend** (`artifacts/api-server/.env`):
-   ```env
-   CLERK_SECRET_KEY=your_clerk_secret_key
-   ```
+> [!TIP]
+> You can also set `GEMINI_API_KEY` inside `artifacts/api-server/.env` to configure a default fallback key on the server side so your users don't need to configure one.
 
-### 📦 Installation
-From the root workspace folder, install all local and package dependencies:
+---
+
+## 🚀 Unified Execution Commands (Run and Build)
+
+Imagica utilizes **pnpm workspace filters** to manage all packages from the root workspace directory. You **never** need to manually `cd` into individual folders.
+
+### 📦 1. Installation
+Install all monorepo dependencies, link local library packages, and compile workspace structures:
 ```bash
 pnpm install
 ```
 
-### 💻 Running Development Servers
-Start both the API server and the front-end workbench in local development mode:
+### 💻 2. Running in Development Mode
+To start all servers (Frontend React App, Sandbox Preview Frame, and Backend Express API) concurrently in local development mode:
 ```bash
 pnpm run dev
 ```
-* **Frontend UI**: `http://localhost:25383`
-* **API Backend**: `http://localhost:18080`
+* **Frontend workbench Application**: `http://localhost:25383`
+* **Sandbox Preview Application**: `http://localhost:25384`
+* **API Backend Server**: `http://localhost:18080`
 
-### 🏗️ Compiling for Production
-Verify types and compile the complete production bundle:
+### 🏗️ 3. Compiling for Production
+To typecheck the entire monorepo and generate compiled production bundles:
 ```bash
 pnpm run build
 ```
 
+### ⚙️ 4. Run Production Server
+To start the compiled production Express server (which automatically serves the compiled frontend assets statically):
+```bash
+pnpm start
+```
+
+### 🚨 5. Typechecking & Linting
+To perform isolated TypeScript compiler checks across all frontend libraries and backend services:
+```bash
+pnpm run typecheck
+```
+
 ---
 
-## ⚡ Deployment
+## 🔬 Isolated Sub-Project Operations
+If you want to run commands inside specific sub-folders, you can use the `--filter` flag from the root directory:
 
-The application is completely configured for cloud deployment platforms (such as Render, Dokku, or VPS engines):
-* Root scripts automatically compile frontend public assets directly into the Express static folder.
-* Launch production instances directly using:
+* **Backend DB migrations generation**:
   ```bash
-  pnpm start
+  pnpm --filter @workspace/db run generate
+  ```
+* **Backend DB migrations execution**:
+  ```bash
+  pnpm --filter @workspace/db run push
+  ```
+* **Regenerate frontend API client hooks from OpenAPI spec**:
+  ```bash
+  pnpm --filter @workspace/api-spec run generate
   ```
 
 ---
