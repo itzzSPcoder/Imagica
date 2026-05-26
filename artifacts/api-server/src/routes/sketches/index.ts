@@ -707,8 +707,6 @@ router.get("/sketches/:id/refine", async (req, res): Promise<void> => {
   const refinementPrompt = `You are a world-class expert frontend developer and visual designer.
 You are refining a previously generated component/code block according to the user's request.
 
-Here is the original hand-drawn UI sketch that was uploaded (attached as the image).
-
 Here is the CURRENT working code:
 \`\`\`
 ${sketch.generatedCode}
@@ -737,7 +735,6 @@ Make sure to output the COMPLETE refined code. Never truncate, omit sections, or
           {
             role: "user",
             parts: [
-              { inlineData: { mimeType, data: base64Data } },
               { text: refinementPrompt },
             ],
           },
