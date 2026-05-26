@@ -89,9 +89,14 @@ async function withRetry<T>(
 }
 
 function buildPrompt(framework: string, instructions?: string | null): string {
-  const isReact = framework !== "html-tailwind" && framework !== "mern-stack";
-  const isShadcn = framework === "react-shadcn";
-  const isMern = framework === "mern-stack";
+  let friendlyFramework = "React + Tailwind";
+  if (framework === "html-tailwind") {
+    friendlyFramework = "plain HTML/CSS";
+  } else if (framework === "react-shadcn") {
+    friendlyFramework = "React + Tailwind (with shadcn/ui components)";
+  } else if (framework === "mern-stack") {
+    friendlyFramework = "MERN Fullstack";
+  }
 
   const aestheticsAndImagesGuide = `
 VISUAL DESIGN & AESTHETICS RULES (MAKE IT A 'DASHING COOL UI'):
@@ -120,110 +125,100 @@ REAL WORKING MOCK IMAGES:
      * Watch: https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&auto=format&fit=crop&q=80
    - Generic Sizing Placeholders: If specific dimensions are required, use: https://placehold.co/WIDTHxHEIGHT/1e1b4b/ffffff?text=Label (use deep indigo color code 1e1b4b).`;
 
-  let prompt: string;
+  let prompt = `You are an expert UI/UX analyst and full-stack developer. The user will give you a photo of a hand-drawn wireframe or UI sketch along with their preferred output framework: ${friendlyFramework}.
 
-  if (!isReact) {
-    // ── HTML + Tailwind ──────────────────────────────────────────────────────
-    prompt = `You are a world-class expert frontend developer and visual designer. Convert the hand-drawn UI sketch in this image into a complete, working, visually stunning HTML file styled with Tailwind CSS.
+STEP 1 — ANALYZE THE SKETCH:
+Carefully look at the image and identify:
+- Screen type (login page, dashboard, landing page, profile, etc.)
+- All UI components present (navbar, buttons, inputs, cards, modals, lists, images, etc.)
+- Layout structure (how elements are arranged — rows, columns, sections)
+- Visual hierarchy (what is the most important element on screen)
 
-OUTPUT RULES — read every rule carefully:
-1. Output ONLY raw code. No explanations, no markdown, no code fences (\`\`\`).
-2. Start the very first character with <!DOCTYPE html> and end with </html>. Nothing before or after.
-3. The file must be a complete, self-contained HTML document that opens in a browser without any build step.
-4. Include <script src="https://cdn.tailwindcss.com"></script> in <head>.
-5. Reproduce every visible UI element from the sketch: buttons, inputs, labels, nav, cards, tables, icons (use beautiful SVG icons or Unicode characters).
-6. Replicate the layout structure accurately using Tailwind flex/grid utilities.
-7. Use realistic placeholder text and data.
-8. Every opened HTML tag must be properly closed. Self-closing tags (input, img, br, hr) must use correct HTML5 syntax.
-9. The document must be visually complete — do NOT truncate or omit any section.
-10. TOKEN EFFICIENCY & COMPLETENESS: Gemini has a strict output token limit. To prevent truncation and ensure the file is 100% complete and fully closed, keep code extremely clean. Avoid long/complex SVG path coordinates (use simple clean SVGs or Unicode icons instead). You MUST output the ENTIRE working HTML file from <!DOCTYPE html> to </html>. Never truncate, omit sections, or leave any tag unfinished.
+STEP 2 — OUTPUT A JSON SUMMARY (always first, before any code):
+\`\`\`json
+{
+  "screen_type": "...",
+  "components_detected": ["...", "..."],
+  "layout": "...",
+  "framework": "${friendlyFramework}"
+}
+\`\`\`
 
-${aestheticsAndImagesGuide}`;
-  } else if (isShadcn) {
-    // ── React + shadcn/ui ────────────────────────────────────────────────────
-    prompt = `You are a world-class expert React/TypeScript frontend developer and designer. Convert the hand-drawn UI sketch in this image into a complete, gorgeous React TSX component using shadcn/ui and Tailwind CSS.
+STEP 3 — GENERATE THE CODE:
+Based on the analysis above, write clean production-ready code.
 
-OUTPUT RULES — read every rule carefully:
-1. Output ONLY raw TSX code. No explanations, no markdown, no code fences (\`\`\`).
-2. The very first line must be an import statement. The very last line must be: export default ComponentName;
-3. Import ONLY from these available packages:
-   - "react" (useState, useEffect, useRef, useCallback, etc.)
-   - "@/components/ui/button" → { Button }
-   - "@/components/ui/input" → { Input }
-   - "@/components/ui/card" → { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
-   - "@/components/ui/badge" → { Badge }
-   - "@/components/ui/separator" → { Separator }
-   - "@/components/ui/label" → { Label }
-   - "@/components/ui/textarea" → { Textarea }
-   - "@/components/ui/select" → { Select, SelectContent, SelectItem, SelectTrigger, SelectValue }
-   - "@/components/ui/avatar" → { Avatar, AvatarImage, AvatarFallback }
-   - "@/components/ui/tabs" → { Tabs, TabsContent, TabsList, TabsTrigger }
-   - "@/components/ui/progress" → { Progress }
-   - "@/components/ui/checkbox" → { Checkbox }
-   - "@/components/ui/switch" → { Switch }
-   - "lucide-react" (any icon from lucide-react)
-4. DO NOT import from any other package. If you need an icon not in lucide-react, use an inline SVG instead.
-5. DO NOT use imaginary imports like "@/lib/utils", "@/hooks/...", or any component not listed above.
-6. The component must be a single named function. Give it a clear PascalCase name matching the sketch content.
-7. Reproduce every visible UI element from the sketch: buttons, inputs, nav, cards, lists, tables, modals, etc.
-8. Replicate the layout accurately with Tailwind utility classes (flex, grid, gap, padding, etc.).
-9. Use realistic placeholder text and data. For interactive elements, wire up useState where it makes the UI feel live and responsive.
-10. Every JSX tag must be properly closed. Every opened { must have a matching }.
-11. The component must be COMPLETE. Do NOT truncate any section. Do NOT cut any SVG path midway.
-12. Every inline SVG must have all path d attributes fully written out — no "..." or partial paths.
-13. The return statement must close with ); and the function with } before the export line.
-14. VERIFY before finalising: all opening tags have closing tags, no syntax errors, the component compiles.
-15. TOKEN EFFICIENCY & COMPLETENESS: To prevent output limit truncation, keep the component code clean and structured. Avoid overly nested elements or extremely long inline SVG path coordinates (use clean standard SVGs or Lucide icons instead). You MUST output the entire file from imports to export default. Never truncate or leave the code unfinished.
+Rules for ALL frameworks:
+- Use realistic placeholder content (not Lorem ipsum)
+- Make it fully responsive
+- Add short inline comments mapping code sections to the sketch
+- Output ONLY the code block after the JSON — no extra explanation
 
-${aestheticsAndImagesGuide}`;
-  } else if (isMern) {
-    // ── Full-Stack MERN ──────────────────────────────────────────────────────
-    prompt = `You are a world-class expert full-stack MERN developer. Convert the hand-drawn UI sketch in this image into a COMPLETE full-stack MERN application bundle.
+`;
 
-OUTPUT RULES — read every rule carefully:
-1. Output ONLY raw code. No explanations, no markdown fences.
-2. Output ALL files separated by a clear comment banner like:
-   // ===== FILE: filename.ext =====
-3. Generate these files:
-   a) React frontend component (App.tsx) using React + Tailwind CSS utility classes.
-   b) Express.js API server (server.js) with relevant REST routes (GET, POST, PUT, DELETE) matching the UI's data.
-   c) Mongoose schema/model file (models/Model.js) if the UI shows forms, lists, or data tables.
-   d) A brief package.json with the necessary dependencies listed.
-4. The React component MUST be a single self-contained TSX function. Import only from "react".
-5. Style the React component with Tailwind CSS utility classes only.
-6. Use realistic placeholder data, wire up useState for interactive elements.
-7. The Express server should use cors and express.json middleware.
-8. Every file must be COMPLETE — do NOT truncate.
-9. VERIFY: all tags closed, all braces balanced.
-10. TOKEN EFFICIENCY & COMPLETENESS: To prevent output limit truncation, keep all backend and frontend files concise, structured, and complete. Avoid bloated layouts or giant inline SVG paths. You MUST output the complete files. Never truncate.
+  if (framework === "react-tailwind" || framework === "react-shadcn") {
+    const isShadcn = framework === "react-shadcn";
+    prompt += `If framework is React + Tailwind:
+- Functional component with hooks
+- Tailwind utility classes only, no custom CSS
+- Use shadcn/ui components (Button, Input, Card) where suitable
+- Single default export named after the screen type
+
+STUBS & COMPONENT IMPORTS GUIDE:
+You can import ONLY from these packages:
+- "react" (useState, useEffect, useRef, useCallback, etc.)
+- "@/components/ui/button" → { Button }
+- "@/components/ui/input" → { Input }
+- "@/components/ui/card" → { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
+- "@/components/ui/badge" → { Badge }
+- "@/components/ui/separator" → { Separator }
+- "@/components/ui/label" → { Label }
+- "@/components/ui/textarea" → { Textarea }
+- "@/components/ui/select" → { Select, SelectContent, SelectItem, SelectTrigger, SelectValue }
+- "@/components/ui/avatar" → { Avatar, AvatarImage, AvatarFallback }
+- "@/components/ui/tabs" → { Tabs, TabsContent, TabsList, TabsTrigger }
+- "@/components/ui/progress" → { Progress }
+- "@/components/ui/checkbox" → { Checkbox }
+- "@/components/ui/switch" → { Switch }
+- "lucide-react" (any icon from lucide-react)
+
+${isShadcn ? 'DO NOT import from any other package. If you need an icon not in lucide-react, use an inline SVG instead.' : 'DO NOT use lucide-react, shadcn/ui, or any third-party component library. Use inline SVGs with complete, valid path data.'}
+
+Ensure the component is a single named function with a default export at the end: export default ComponentName;
+Do NOT truncate any sections, omit closing tags, or leave any block unfinished.
 
 ${aestheticsAndImagesGuide}`;
-  } else {
-    // ── React + Tailwind ─────────────────────────────────────────────────────
-    prompt = `You are a world-class expert React/TypeScript frontend developer and designer. Convert the hand-drawn UI sketch in this image into a complete, gorgeous React TSX component using only React and Tailwind CSS utility classes.
+  } else if (framework === "html-tailwind") {
+    prompt += `If framework is plain HTML/CSS:
+- Semantic HTML5 tags
+- CSS Flexbox/Grid for layout
+- Use Tailwind CSS by including <script src="https://cdn.tailwindcss.com"></script> in <head>
+- CSS variables in :root for colors
+- Mobile-first with media queries
 
-OUTPUT RULES — read every rule carefully:
-1. Output ONLY raw TSX code. No explanations, no markdown, no code fences (\`\`\`).
-2. The very first line must be an import statement. The very last line must be: export default ComponentName;
-3. Import ONLY from these available packages:
-   - "react" (useState, useEffect, useRef, useCallback, etc.)
-   - DO NOT import from any other package.
-4. Do NOT use lucide-react, shadcn/ui, or any third-party component library.
-5. For icons: use inline SVG elements with complete, valid path data. Never truncate SVG paths.
-6. Style EVERYTHING with Tailwind CSS utility classes only (no inline style objects, no CSS files).
-7. The component must be a single named function. Give it a clear PascalCase name matching the sketch content.
-8. Reproduce every visible UI element from the sketch: buttons, inputs, nav, cards, lists, tables, etc.
-9. Replicate the layout accurately with Tailwind utility classes (flex, grid, gap, padding, etc.).
-10. Use realistic placeholder text and data. For interactive elements, wire up useState where it makes the UI feel live and responsive.
-11. Every JSX tag must be properly closed. Every opened { must have a matching }.
-12. The component must be COMPLETE. Do NOT truncate any section, omit closing tags, or leave any block unfinished.
-13. Every inline SVG must have all path d attributes fully written out — no "..." or partial paths.
-14. The return statement must close with ); and the function with } before the export line.
-15. VERIFY before finalising: all JSX tags are closed, all braces are balanced, no syntax errors.
-16. TOKEN EFFICIENCY & COMPLETENESS: To prevent output limit truncation, keep the component code clean and structured. Avoid extremely long inline SVG path coordinates (use clean standard SVGs or Unicode instead). You MUST output the complete file. Never truncate.
+Ensure to output the complete HTML document starting with <!DOCTYPE html> and ending with </html>.
+Do NOT truncate, omit sections, or leave any tag unfinished.
+
+${aestheticsAndImagesGuide}`;
+  } else if (framework === "mern-stack") {
+    prompt += `If framework is MERN Fullstack:
+- Output React App.tsx using React + Tailwind utility classes
+- Output Express.js server.js with CORS, express.json, and REST routes
+- Use Mongoose schema models/Model.js if forms or lists exist
+- Keep all files separated by clear comment headers like: // ===== FILE: filename.ext =====
+- Do NOT truncate. Ensure files are complete and syntactically balanced.
 
 ${aestheticsAndImagesGuide}`;
   }
+
+  prompt += `
+
+STEP 4 — EDIT MODE (if user says "change...", "update...", or "make it..."):
+The user wants to modify previously generated code.
+- Apply only the requested change
+- Keep everything else exactly the same
+- Output the full updated code — no explanation needed
+
+Default framework if not specified: React + Tailwind`;
 
   if (instructions) {
     prompt += `\n\nAdditional instructions from the user: ${instructions}`;
@@ -232,13 +227,122 @@ ${aestheticsAndImagesGuide}`;
   return prompt;
 }
 
+interface ParsedResult {
+  analysis: {
+    elements: { type: string; label: string; count?: number }[];
+    layout: string;
+    colorScheme: string;
+    complexity: string;
+  };
+  code: string;
+}
+
+function parseGeminiResponse(rawText: string, framework: string): ParsedResult {
+  const text = rawText.trim();
+  let jsonStr = "";
+  let remainingText = text;
+
+  // Try to find a JSON block wrapped in \`\`\`json ... \`\`\`
+  const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+  if (jsonMatch) {
+    jsonStr = jsonMatch[1].trim();
+    remainingText = text.replace(jsonMatch[0], "").trim();
+  } else {
+    // If not wrapped in \`\`\`json, look for the first balanced curly braces
+    const firstBraceIndex = text.indexOf("{");
+    if (firstBraceIndex !== -1) {
+      let braceCount = 0;
+      let endBraceIndex = -1;
+      for (let i = firstBraceIndex; i < text.length; i++) {
+        if (text[i] === "{") braceCount++;
+        else if (text[i] === "}") {
+          braceCount--;
+          if (braceCount === 0) {
+            endBraceIndex = i;
+            break;
+          }
+        }
+      }
+      if (endBraceIndex !== -1) {
+        jsonStr = text.substring(firstBraceIndex, endBraceIndex + 1).trim();
+        remainingText = text.substring(endBraceIndex + 1).trim();
+      }
+    }
+  }
+
+  let screenType = "unknown";
+  let componentsDetected: string[] = [];
+  let layout = "Generated from uploaded sketch";
+  let colorScheme = "unknown";
+  let complexity = "medium";
+
+  if (jsonStr) {
+    try {
+      const parsedJson = JSON.parse(jsonStr);
+      screenType = parsedJson.screen_type || screenType;
+      componentsDetected = parsedJson.components_detected || [];
+      layout = parsedJson.layout || layout;
+      colorScheme = parsedJson.color_scheme || parsedJson.colors || "Material Dark";
+      complexity = parsedJson.complexity || (componentsDetected.length > 8 ? "high" : componentsDetected.length > 4 ? "medium" : "low");
+    } catch (e) {
+      logger.warn({ err: e, jsonStr }, "Failed to parse JSON summary from Gemini response");
+    }
+  }
+
+  // Convert friendly components_detected list to the elements array expected by the frontend
+  const elements = componentsDetected.map((comp) => {
+    let type = "card";
+    const lower = comp.toLowerCase();
+    if (lower.includes("button") || lower.includes("btn")) type = "button";
+    else if (lower.includes("input") || lower.includes("field") || lower.includes("text")) type = "input";
+    else if (lower.includes("nav") || lower.includes("header")) type = "navbar";
+    else if (lower.includes("sidebar")) type = "sidebar";
+    else if (lower.includes("footer")) type = "footer";
+    else if (lower.includes("avatar") || lower.includes("profile")) type = "avatar";
+    else if (lower.includes("image") || lower.includes("pic") || lower.includes("img")) type = "image";
+    else if (lower.includes("card")) type = "card";
+    else if (lower.includes("table")) type = "table";
+    else if (lower.includes("list")) type = "list";
+    else if (lower.includes("modal") || lower.includes("dialog")) type = "modal";
+    else if (lower.includes("icon")) type = "icon";
+    else if (lower.includes("badge")) type = "badge";
+    else if (lower.includes("tab")) type = "tab";
+    else if (lower.includes("search")) type = "search";
+    else if (lower.includes("dropdown") || lower.includes("select")) type = "dropdown";
+
+    return { type, label: comp, count: 1 };
+  });
+
+  // Extract the code block from the remaining text
+  let code = remainingText.trim();
+  const codeBlockMatch = code.match(/```[a-zA-Z]*\n([\s\S]*?)\n```/);
+  if (codeBlockMatch) {
+    code = codeBlockMatch[1].trim();
+  } else {
+    code = code
+      .replace(/^```[a-zA-Z]*\s*/m, "")
+      .replace(/\\s*```\\s*$/m, "")
+      .trim();
+  }
+
+  return {
+    analysis: {
+      elements,
+      layout,
+      colorScheme,
+      complexity,
+    },
+    code,
+  };
+}
+
 async function generateCodeFromImage(
   imageDataUrl: string,
   framework: string,
   instructions?: string | null,
   apiKey?: string,
   model = DEFAULT_GEMINI_MODEL,
-): Promise<string> {
+): Promise<{ code: string; analysis: any }> {
   const base64Match = imageDataUrl.match(/^data:([^;]+);base64,(.+)$/);
   if (!base64Match) {
     throw new Error("Invalid image data URL format");
@@ -274,11 +378,7 @@ async function generateCodeFromImage(
       );
 
       const text = response.text ?? "";
-      // Strip ALL markdown code fences the model may have wrapped the output in
-      return text
-        .replace(/^```[a-zA-Z]*\s*/m, "")   // opening fence like ```tsx or ```html
-        .replace(/\s*```\s*$/m, "")          // closing fence
-        .trim();
+      return parseGeminiResponse(text, framework);
     } catch (err: any) {
       lastError = err;
       const status = err?.status ?? err?.statusCode ?? 0;
@@ -401,23 +501,23 @@ router.post("/sketches", async (req, res): Promise<void> => {
 
   const userApiKey = req.headers["x-gemini-api-key"] as string | undefined;
 
-  // Keep generation to a single Gemini request. Running analysis as a second
-  // parallel request burns quota quickly on free-tier keys.
-  let generatedCode: string;
-  let analysis: Awaited<ReturnType<typeof analyzeSketchElements>> = {
+  let generatedCode: string = "";
+  let analysis: any = {
     elements: [],
     layout: "Generated from uploaded sketch",
     colorScheme: "unknown",
     complexity: "unknown",
   };
   try {
-    generatedCode = await generateCodeFromImage(
+    const result = await generateCodeFromImage(
       imageDataUrl,
       framework,
       instructions,
       userApiKey,
       model,
     );
+    generatedCode = result.code;
+    analysis = result.analysis;
   } catch (err: any) {
     req.log.error({ err }, "Gemini generation failed");
     const status = err?.status ?? err?.statusCode ?? 0;
@@ -512,8 +612,6 @@ router.get("/sketches/:id/stream", async (req, res): Promise<void> => {
   const model = getGeminiModel(req);
   const client = getGeminiClient(userApiKey);
 
-  res.write(`data: ${JSON.stringify({ type: "analysis", analysis: analysisResult })}\n\n`);
-
   let lastError: any;
   let success = false;
 
@@ -539,13 +637,65 @@ router.get("/sketches/:id/stream", async (req, res): Promise<void> => {
           }),
         );
 
+        let buffer = "";
+        let jsonParsed = false;
+
         for await (const chunk of stream) {
           const text = chunk.text;
           if (text) {
-            fullCode += text;
-            res.write(`data: ${JSON.stringify({ type: "chunk", content: text })}\n\n`);
+            if (!jsonParsed) {
+              buffer += text;
+              const jsonEndIndex = buffer.indexOf("}");
+              if (jsonEndIndex !== -1) {
+                let braceCount = 0;
+                let foundEnd = -1;
+                for (let i = 0; i < buffer.length; i++) {
+                  if (buffer[i] === "{") braceCount++;
+                  else if (buffer[i] === "}") {
+                    braceCount--;
+                    if (braceCount === 0) {
+                      foundEnd = i;
+                      break;
+                    }
+                  }
+                }
+
+                if (foundEnd !== -1) {
+                  const jsonPart = buffer.substring(0, foundEnd + 1);
+                  const parsed = parseGeminiResponse(jsonPart, sketch.framework);
+                  res.write(`data: ${JSON.stringify({ type: "analysis", analysis: parsed.analysis })}\n\n`);
+                  
+                  let remaining = buffer.substring(foundEnd + 1).trim();
+                  remaining = remaining.replace(/^```[a-zA-Z]*\s*\n?/m, "").trim();
+                  if (remaining) {
+                    fullCode += remaining;
+                    res.write(`data: ${JSON.stringify({ type: "chunk", content: remaining })}\n\n`);
+                  }
+                  jsonParsed = true;
+                  buffer = "";
+                }
+              }
+            } else {
+              let cleanText = text;
+              if (fullCode === "" && cleanText.startsWith("```")) {
+                cleanText = cleanText.replace(/^```[a-zA-Z]*\s*\n?/m, "");
+              }
+              if (cleanText.endsWith("```")) {
+                cleanText = cleanText.substring(0, cleanText.length - 3).trim();
+              }
+              fullCode += cleanText;
+              res.write(`data: ${JSON.stringify({ type: "chunk", content: cleanText })}\n\n`);
+            }
           }
         }
+
+        if (!jsonParsed) {
+          const parsed = parseGeminiResponse(buffer, sketch.framework);
+          res.write(`data: ${JSON.stringify({ type: "analysis", analysis: parsed.analysis })}\n\n`);
+          fullCode = parsed.code;
+          res.write(`data: ${JSON.stringify({ type: "chunk", content: parsed.code })}\n\n`);
+        }
+
         success = true;
         break;
       } catch (err: any) {
@@ -565,18 +715,14 @@ router.get("/sketches/:id/stream", async (req, res): Promise<void> => {
       throw lastError;
     }
 
-    // Clean up code markdown fences
-    const cleanCode = fullCode
-      .replace(/^```[a-zA-Z]*\s*/m, "")
-      .replace(/\s*```\s*$/m, "")
-      .trim();
+    const parsedData = parseGeminiResponse(fullCode, sketch.framework);
 
     // Save final code and analysis to the DB
     await db
       .update(sketchesTable)
       .set({
-        generatedCode: cleanCode,
-        analysis: JSON.stringify(analysisResult),
+        generatedCode: parsedData.code,
+        analysis: JSON.stringify(parsedData.analysis),
       })
       .where(eq(sketchesTable.id, sketch.id));
 
