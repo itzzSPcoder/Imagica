@@ -50,6 +50,7 @@ export function buildPreviewHtml(code: string, framework: string): string {
   // Everything is transformed in one Babel pass so stubs' JSX is also compiled.
   const fullSource = [
     `const { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext, Fragment } = React;`,
+    `if (typeof Recharts !== 'undefined') { var { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, ComposedChart, ScatterChart, Scatter, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, RadialBarChart, RadialBar, Treemap, Sankey } = Recharts; }`,
     isShadcn ? SHADCN_STUBS : "",
     buildLucideStubs(lucideImports),
     body,
@@ -72,6 +73,9 @@ export function buildPreviewHtml(code: string, framework: string): string {
   <script crossorigin onerror="typeof __showErr !== 'undefined' ? __showErr('Failed to load React CDN. Please check your internet connection.') : alert('React CDN failed')" src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
   <script crossorigin onerror="typeof __showErr !== 'undefined' ? __showErr('Failed to load React-DOM CDN. Please check your internet connection.') : alert('React-DOM CDN failed')" src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
   <script onerror="typeof __showErr !== 'undefined' ? __showErr('Failed to load Babel CDN. Please check your internet connection.') : alert('Babel CDN failed')" src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.27.1/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/recharts/umd/Recharts.min.js"></script>
+  <script>window.process = { env: { NODE_ENV: 'development' } };</script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #ffffff; }
@@ -166,10 +170,10 @@ function extractComponentName(code: string): string | null {
 }
 
 function stripImports(code: string): string {
-  // Multi-line imports: import { \n  A,\n  B\n} from '...'
+  // Multi-line and single-line imports
   return code
-    .replace(/^import\s+[\s\S]*?from\s+['"][^'"]*['"]\s*;?\s*\n/gm, "")
-    .replace(/^import\s+['"][^'"]*['"]\s*;?\s*\n/gm, "")
+    .replace(/^[ \t]*import\s+[\s\S]*?from\s+['"][^'"]*['"]\s*;?[ \t]*\n?/gm, "")
+    .replace(/^[ \t]*import\s+['"][^'"]*['"]\s*;?[ \t]*\n?/gm, "")
     .trim();
 }
 
