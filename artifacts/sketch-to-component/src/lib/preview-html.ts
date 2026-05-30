@@ -31,7 +31,7 @@ export function buildPreviewHtml(code: string, framework: string): string {
   const isShadcn = framework === "react-shadcn";
 
   // ── 1. Parse what was imported before we strip imports ───────────────────
-  const lucideImports = parseLucideImports(componentCode);
+  const lucideImports = parseIconImports(componentCode);
 
   // ── 2. Derive component name ─────────────────────────────────────────────
   const componentName = extractComponentName(componentCode) ?? "GeneratedComponent";
@@ -52,7 +52,7 @@ export function buildPreviewHtml(code: string, framework: string): string {
     `const { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext, Fragment } = React;`,
     `if (typeof Recharts !== 'undefined') { var { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, ComposedChart, ScatterChart, Scatter, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, RadialBarChart, RadialBar, Treemap, Sankey } = Recharts; }`,
     isShadcn ? SHADCN_STUBS : "",
-    buildLucideStubs(lucideImports),
+    buildIconStubs(lucideImports),
     body,
     // Return the component so the outer function can grab it
     `var __comp = typeof ${componentName} !== "undefined" ? ${componentName} : null;`,
@@ -177,9 +177,9 @@ function stripImports(code: string): string {
     .trim();
 }
 
-function parseLucideImports(code: string): string[] {
+function parseIconImports(code: string): string[] {
   const results: string[] = [];
-  const re = /import\s+\{([^}]+)\}\s+from\s+['"]lucide-react['"]/g;
+  const re = /import\s+\{([^}]+)\}\s+from\s+['"](?:lucide-react|react-icons\/[a-z0-9_-]+|@remixicon\/react|@heroicons\/react\/(?:solid|outline))['"]/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(code)) !== null) {
     m[1]
@@ -191,7 +191,7 @@ function parseLucideImports(code: string): string[] {
   return [...new Set(results)];
 }
 
-function buildLucideStubs(names: string[]): string {
+function buildIconStubs(names: string[]): string {
   if (names.length === 0) return "";
 
   // Map of icon name → SVG path(s). Real paths for common icons, generic fallback.
