@@ -130,6 +130,8 @@ function createMemoryDb() {
     if (tableName === "sketches") {
       row["updatedAt"] = values["updatedAt"] ?? timestamp;
       row["framework"] = values["framework"] ?? "react-tailwind";
+      row["tokensUsed"] = values["tokensUsed"] ?? 0;
+      row["tokensSaved"] = values["tokensSaved"] ?? 0;
     }
 
     return row;

@@ -48,3 +48,5 @@ scratch/
 # Replit
 .cache/
 .local/
+**/.env
+\#\# GitHub Copilot Chat.md 

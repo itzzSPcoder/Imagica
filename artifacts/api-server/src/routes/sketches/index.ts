@@ -357,7 +357,7 @@ async function generateCodeFromImage(
   instructions?: string | null,
   apiKey?: string,
   model = DEFAULT_GEMINI_MODEL,
-): Promise<{ code: string; analysis: any }> {
+): Promise<{ code: string; analysis: any; usageMetadata?: any }> {
   const base64Match = imageDataUrl.match(/^data:([^;]+);base64,(.+)$/);
   if (!base64Match) {
     throw new Error("Invalid image data URL format");
@@ -393,7 +393,11 @@ async function generateCodeFromImage(
       );
 
       const text = response.text ?? "";
-      return parseGeminiResponse(text, framework);
+      const parsed = parseGeminiResponse(text, framework);
+      return {
+        ...parsed,
+        usageMetadata: response.usageMetadata,
+      };
     } catch (err: any) {
       lastError = err;
       const status = err?.status ?? err?.statusCode ?? 0;
@@ -492,14 +496,18 @@ router.get("/sketches/stats", async (req, res): Promise<void> => {
   const total = all.length;
 
   const byFramework: Record<string, number> = {};
+  let totalTokensUsed = 0;
+  let totalTokensSaved = 0;
   for (const s of all) {
     byFramework[s.framework] = (byFramework[s.framework] ?? 0) + 1;
+    totalTokensUsed += s.tokensUsed ?? 0;
+    totalTokensSaved += s.tokensSaved ?? 0;
   }
 
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const recentCount = all.filter((s: { createdAt: Date }) => s.createdAt >= oneDayAgo).length;
 
-  res.json({ total, byFramework, recentCount });
+  res.json({ total, byFramework, recentCount, totalTokensUsed, totalTokensSaved });
 });
 
 router.post("/sketches", async (req, res): Promise<void> => {
@@ -523,6 +531,7 @@ router.post("/sketches", async (req, res): Promise<void> => {
     colorScheme: "unknown",
     complexity: "unknown",
   };
+  let tokensUsed = 0;
   try {
     const result = await generateCodeFromImage(
       imageDataUrl,
@@ -533,6 +542,15 @@ router.post("/sketches", async (req, res): Promise<void> => {
     );
     generatedCode = result.code;
     analysis = result.analysis;
+    const finalUsage = result.usageMetadata;
+    let promptTokens = finalUsage?.promptTokenCount ?? 0;
+    let candidatesTokens = finalUsage?.candidatesTokenCount ?? 0;
+    tokensUsed = finalUsage?.totalTokenCount ?? (promptTokens + candidatesTokens);
+    if (tokensUsed === 0) {
+      promptTokens = Math.ceil((instructions?.length ?? 0) / 4.0) + 262144;
+      candidatesTokens = Math.ceil(generatedCode.length / 4.0);
+      tokensUsed = promptTokens + candidatesTokens;
+    }
   } catch (err: any) {
     req.log.error({ err }, "Gemini generation failed");
     const status = err?.status ?? err?.statusCode ?? 0;
@@ -559,6 +577,8 @@ router.post("/sketches", async (req, res): Promise<void> => {
       framework,
       instructions: instructions ?? null,
       analysis: JSON.stringify(analysis),
+      tokensUsed,
+      tokensSaved: 0,
     })
     .returning();
 
@@ -654,9 +674,14 @@ router.get("/sketches/:id/stream", async (req, res): Promise<void> => {
 
         let buffer = "";
         let jsonParsed = false;
+        let finalUsage: any = null;
 
         for await (const chunk of stream) {
           const text = chunk.text;
+          const usage = chunk.usageMetadata;
+          if (usage) {
+            finalUsage = usage;
+          }
           if (text) {
             if (!jsonParsed) {
               buffer += text;
@@ -713,6 +738,27 @@ router.get("/sketches/:id/stream", async (req, res): Promise<void> => {
           res.write(`data: ${JSON.stringify({ type: "chunk", content: parsed.code })}\n\n`);
         }
 
+        let promptTokens = finalUsage?.promptTokenCount ?? 0;
+        let candidatesTokens = finalUsage?.candidatesTokenCount ?? 0;
+        let totalTokens = finalUsage?.totalTokenCount ?? (promptTokens + candidatesTokens);
+
+        if (totalTokens === 0) {
+          promptTokens = Math.ceil(prompt.length / 4.0) + 262144;
+          candidatesTokens = Math.ceil(fullCode.length / 4.0);
+          totalTokens = promptTokens + candidatesTokens;
+        }
+
+        // Save final code, analysis and tokens directly to DB, avoiding double parsing
+        await db
+          .update(sketchesTable)
+          .set({
+            generatedCode: fullCode.trim(),
+            analysis: JSON.stringify(streamedAnalysis),
+            tokensUsed: totalTokens,
+            tokensSaved: 0,
+          })
+          .where(eq(sketchesTable.id, sketch.id));
+
         success = true;
         break;
       } catch (err: any) {
@@ -731,15 +777,6 @@ router.get("/sketches/:id/stream", async (req, res): Promise<void> => {
     if (!success) {
       throw lastError;
     }
-
-    // Save final code and analysis directly to DB, avoiding double parsing
-    await db
-      .update(sketchesTable)
-      .set({
-        generatedCode: fullCode.trim(),
-        analysis: JSON.stringify(streamedAnalysis),
-      })
-      .where(eq(sketchesTable.id, sketch.id));
 
     res.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
   } catch (err: any) {
@@ -845,6 +882,8 @@ router.get("/sketches/:id/refine", async (req, res): Promise<void> => {
     return;
   }
 
+  const visionMode = req.query.visionMode === "true";
+
   const [sketch] = await db
     .select()
     .from(sketchesTable)
@@ -859,7 +898,7 @@ router.get("/sketches/:id/refine", async (req, res): Promise<void> => {
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
 
-  req.log.info({ id: sketch.id }, "Starting real-time code refinement stream");
+  req.log.info({ id: sketch.id, visionMode }, "Starting real-time code refinement stream");
 
   const convTitle = `sketch-${sketch.id}`;
   let [conversation] = await db
@@ -880,28 +919,29 @@ router.get("/sketches/:id/refine", async (req, res): Promise<void> => {
     content: messageText,
   });
 
-  const previousMessages = await db
-    .select()
-    .from(messagesTable)
-    .where(eq(messagesTable.conversationId, conversation.id))
-    .orderBy(messagesTable.createdAt);
+  try {
+    const previousMessages = await db
+      .select()
+      .from(messagesTable)
+      .where(eq(messagesTable.conversationId, conversation.id))
+      .orderBy(messagesTable.createdAt);
 
-  const base64Match = sketch.imageDataUrl.match(/^data:([^;]+);base64,(.+)$/);
-  if (!base64Match) {
-    res.write(`data: ${JSON.stringify({ type: "error", message: "Invalid image format" })}\n\n`);
-    res.end();
-    return;
-  }
-  const mimeType = base64Match[1];
-  const base64Data = base64Match[2];
+    const base64Match = sketch.imageDataUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (!base64Match) {
+      res.write(`data: ${JSON.stringify({ type: "error", message: "Invalid image format" })}\n\n`);
+      res.end();
+      return;
+    }
+    const mimeType = base64Match[1];
+    const base64Data = base64Match[2];
 
-  const aestheticsRules = buildPrompt(sketch.framework, sketch.instructions);
+    const aestheticsRules = buildPrompt(sketch.framework, sketch.instructions);
 
-  const conversationHistoryText = previousMessages
-    .map((m: { role: string; content: string }) => `${m.role === "assistant" ? "Assistant" : "User"}: ${m.content}`)
-    .join("\n");
+    const conversationHistoryText = previousMessages
+      .map((m: { role: string; content: string }) => `${m.role === "assistant" ? "Assistant" : "User"}: ${m.content}`)
+      .join("\n");
 
-  const refinementPrompt = `You are a world-class expert frontend developer and visual designer.
+    const refinementPrompt = `You are a world-class expert frontend developer and visual designer.
 You are refining a previously generated component/code block according to the user's request.
 
 Here is the CURRENT working code:
@@ -919,90 +959,118 @@ ${aestheticsRules}
 
 Make sure to output the COMPLETE refined code. Never truncate, omit sections, or output partial code blocks.`;
 
-  let refinedCode = "";
-  const userApiKey = (req.headers["x-gemini-api-key"] || req.query.apiKey) as string | undefined;
-  const model = getGeminiModel(req);
-  const client = getGeminiClient(userApiKey);
-  let lastError: any;
-  let success = false;
+    let refinedCode = "";
+    const userApiKey = (req.headers["x-gemini-api-key"] || req.query.apiKey) as string | undefined;
+    const model = getGeminiModel(req);
+    const client = getGeminiClient(userApiKey);
+    let lastError: any;
+    let success = false;
 
-  for (const candidateModel of orderedGeminiModels(model)) {
-    try {
-      refinedCode = ""; // Reset in case of fallback retry
-      const stream = await withRetry(() =>
-        client.models.generateContentStream({
-          model: candidateModel,
-          contents: [
-            {
-              role: "user",
-              parts: [
-                { text: refinementPrompt },
-              ],
-            },
-          ],
-          config: { maxOutputTokens: 8192 },
-        }),
-      );
-
-      for await (const chunk of stream) {
-        const text = chunk.text;
-        if (text) {
-          refinedCode += text;
-          res.write(`data: ${JSON.stringify({ type: "chunk", content: text })}\n\n`);
+    for (const candidateModel of orderedGeminiModels(model)) {
+      try {
+        refinedCode = ""; // Reset in case of fallback retry
+        const parts: any[] = [];
+        if (visionMode) {
+          parts.push({ inlineData: { mimeType, data: base64Data } });
         }
+        parts.push({ text: refinementPrompt });
+
+        const stream = await withRetry(() =>
+          client.models.generateContentStream({
+            model: candidateModel,
+            contents: [
+              {
+                role: "user",
+                parts,
+              },
+            ],
+            config: { maxOutputTokens: 8192 },
+          }),
+        );
+
+        let finalUsage: any = null;
+        for await (const chunk of stream) {
+          const text = chunk.text;
+          const usage = chunk.usageMetadata;
+          if (usage) {
+            finalUsage = usage;
+          }
+          if (text) {
+            refinedCode += text;
+            res.write(`data: ${JSON.stringify({ type: "chunk", content: text })}\n\n`);
+          }
+        }
+        
+        const cleanRefinedCode = refinedCode
+          .replace(/^```[a-zA-Z]*\s*/m, "")
+          .replace(/\s*```\s*$/m, "")
+          .trim();
+
+        let promptTokens = finalUsage?.promptTokenCount ?? 0;
+        let candidatesTokens = finalUsage?.candidatesTokenCount ?? 0;
+        let totalTokens = finalUsage?.totalTokenCount ?? (promptTokens + candidatesTokens);
+
+        if (totalTokens === 0) {
+          promptTokens = Math.ceil(refinementPrompt.length / 4.0) + (visionMode ? 262144 : 0);
+          candidatesTokens = Math.ceil(cleanRefinedCode.length / 4.0);
+          totalTokens = promptTokens + candidatesTokens;
+        }
+
+        // If visionMode is false, we saved the image payload! (~262k tokens)
+        const tokensSavedThisTurn = visionMode ? 0 : 262144;
+        const newTokensUsed = (sketch.tokensUsed ?? 0) + totalTokens;
+        const newTokensSaved = (sketch.tokensSaved ?? 0) + tokensSavedThisTurn;
+
+        await db
+          .update(sketchesTable)
+          .set({
+            generatedCode: cleanRefinedCode,
+            tokensUsed: newTokensUsed,
+            tokensSaved: newTokensSaved,
+          })
+          .where(eq(sketchesTable.id, sketch.id));
+
+        await db.insert(messagesTable).values({
+          conversationId: conversation.id,
+          role: "assistant",
+          content: `Code refined successfully based on your request: "${messageText}".`,
+        });
+
+        res.write(`data: ${JSON.stringify({ 
+          type: "done", 
+          tokensUsed: newTokensUsed, 
+          tokensSaved: newTokensSaved 
+        })}\n\n`);
+
+        success = true;
+        break;
+      } catch (err: any) {
+        lastError = err;
+        const status = err?.status ?? err?.statusCode ?? 0;
+        if (status !== 429) {
+          throw err;
+        }
+        req.log.warn(
+          { model: candidateModel, err: err?.message || err },
+          "Gemini model quota hit in refinement stream, trying fallback model",
+        );
       }
-      success = true;
-      break;
-    } catch (err: any) {
-      lastError = err;
-      const status = err?.status ?? err?.statusCode ?? 0;
-      if (status !== 429) {
-        throw err;
-      }
-      req.log.warn(
-        { model: candidateModel, err: err?.message || err },
-        "Gemini model quota hit in refinement stream, trying fallback model",
-      );
     }
-  }
 
-  if (!success) {
-    req.log.error({ err: lastError }, "Gemini refinement streaming failed after trying all models");
-    const status = lastError?.status ?? lastError?.statusCode ?? 0;
-    const userMessage =
-      status === 503
-        ? "Gemini is experiencing high demand. Please try again in a few seconds."
-        : status === 429
-          ? "Rate limit reached. Please wait a moment and try again."
-          : "Refinement failed. Please try again.";
-    res.write(`data: ${JSON.stringify({ type: "error", message: userMessage })}\n\n`);
-    res.end();
-    return;
-  }
-
-  try {
-    const cleanRefinedCode = refinedCode
-      .replace(/^```[a-zA-Z]*\s*/m, "")
-      .replace(/\s*```\s*$/m, "")
-      .trim();
-
-    await db
-      .update(sketchesTable)
-      .set({
-        generatedCode: cleanRefinedCode,
-      })
-      .where(eq(sketchesTable.id, sketch.id));
-
-    await db.insert(messagesTable).values({
-      conversationId: conversation.id,
-      role: "assistant",
-      content: `Code refined successfully based on your request: "${messageText}".`,
-    });
-
-    res.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
+    if (!success) {
+      req.log.error({ err: lastError }, "Gemini refinement streaming failed after trying all models");
+      const status = lastError?.status ?? lastError?.statusCode ?? 0;
+      const userMessage =
+        status === 503
+          ? "Gemini is experiencing high demand. Please try again in a few seconds."
+          : status === 429
+            ? "Rate limit reached. Please wait a moment and try again."
+            : "Refinement failed. Please try again.";
+      res.write(`data: ${JSON.stringify({ type: "error", message: userMessage })}\n\n`);
+    }
   } catch (err: any) {
-    req.log.error({ err }, "Failed to save refined code to DB");
-    res.write(`data: ${JSON.stringify({ type: "error", message: "Failed to save refined code" })}\n\n`);
+    req.log.error({ err }, "Refinement route failed");
+    res.write(`data: ${JSON.stringify({ type: "error", message: "An unexpected error occurred during refinement." })}\n\n`);
   } finally {
     res.end();
   }

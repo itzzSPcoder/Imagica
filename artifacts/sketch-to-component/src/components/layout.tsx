@@ -276,6 +276,53 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </div>
               ) : null}
             </div>
+
+            {/* Token Allocation Pool (Interactive Google Labs aesthetic) */}
+            <div className="space-y-3 px-3 pt-4 border-t border-border select-none">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <span className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase">Token Resource Pool</span>
+                </div>
+                {((stats as any)?.totalTokensSaved ?? 0) > 0 && (
+                  <span className="inline-flex items-center gap-0.5 text-[8px] font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded-full select-none">
+                    ⚡ {((stats as any)?.totalTokensSaved ?? 0).toLocaleString()} Saved
+                  </span>
+                )}
+              </div>
+
+              <div className="bg-card/45 border border-border/80 rounded-xl p-3 space-y-2.5 relative overflow-hidden backdrop-blur-md">
+                <div className="absolute top-0 right-0 w-12 h-12 rounded-full bg-primary/5 blur-xl pointer-events-none" />
+                
+                <div className="flex justify-between items-end">
+                  <div className="space-y-0.5">
+                    <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">Used</p>
+                    <p className="text-[11px] font-semibold text-foreground font-mono leading-none">
+                      {((stats as any)?.totalTokensUsed ?? 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="text-right space-y-0.5">
+                    <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">Pool Left</p>
+                    <p className="text-[11px] font-semibold text-primary font-mono leading-none">
+                      {Math.max(0, 500000 - ((stats as any)?.totalTokensUsed ?? 0)).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden border border-border/10">
+                    <div 
+                      className="h-full gemini-gradient rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(100, (((stats as any)?.totalTokensUsed ?? 0) / 500000) * 100)}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[8px] font-mono text-muted-foreground/80 px-0.5">
+                    <span>0</span>
+                    <span>500k Alloc</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Bottom Section: Gemini Model Selector */}

@@ -2,7 +2,7 @@
   <img src="logo.png" alt="Imagica Logo" width="120" />
 </p>
 
-<h1 align="center">🔮 Imagica</h1>
+<h1 align="center">Imagica</h1>
 
 <p align="center">
   <strong>AI Sketch-to-Component Workbench (Enterprise Edition)</strong>

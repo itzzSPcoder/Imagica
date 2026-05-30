@@ -152,6 +152,7 @@ export default function SketchDetail() {
   const [chatMessages, setChatMessages] = useState<{ role: string; content: string }[]>([]);
   const [chatInput, setChatInput] = useState<string>("");
   const [isRefining, setIsRefining] = useState<boolean>(false);
+  const [visionMode, setVisionMode] = useState<boolean>(false);
 
   useEffect(() => {
     if (!sketch?.id) return;
@@ -261,7 +262,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
     const userApiKey = typeof window !== "undefined" ? window.localStorage.getItem("gemini_api_key") || "" : "";
     const userModel = typeof window !== "undefined" ? window.localStorage.getItem("gemini_model") || "gemini-2.0-flash" : "gemini-2.0-flash";
-    const eventSource = new EventSource(`/api/sketches/${sketch.id}/refine?message=${encodeURIComponent(userMsg)}&apiKey=${encodeURIComponent(userApiKey)}&model=${encodeURIComponent(userModel)}`);
+    const eventSource = new EventSource(`/api/sketches/${sketch.id}/refine?message=${encodeURIComponent(userMsg)}&apiKey=${encodeURIComponent(userApiKey)}&model=${encodeURIComponent(userModel)}&visionMode=${visionMode}`);
 
     eventSource.onmessage = (event) => {
       try {
@@ -286,7 +287,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             .then((res) => res.json())
             .then((msgs) => setChatMessages(msgs));
 
-          queryClient.invalidateQueries({ queryKey: [`/api/sketches/${sketch.id}`] });
+          queryClient.invalidateQueries({ queryKey: getGetSketchQueryKey(id) });
+          queryClient.invalidateQueries({ queryKey: ["/api/sketches/stats"] });
           toast({
             title: "Refinement Completed",
             description: "Sketch sandbox updated successfully.",
@@ -775,6 +777,41 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
                   {analysis && analysis.elements && analysis.elements.length > 0 ? (
                     <>
+                      {/* Premium Token Telemetry Dashboard widget */}
+                      <div className="bg-card/45 border border-border/80 rounded-2xl p-4 space-y-3 relative overflow-hidden backdrop-blur-md">
+                        <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-primary/5 blur-xl pointer-events-none" />
+                        <div className="flex items-center justify-between border-b border-border/60 pb-2.5 select-none">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-primary" />
+                            <span className="text-xs font-bold text-foreground">Token Telemetry Dashboard</span>
+                          </div>
+                          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full select-none">
+                            🚀 {sketch.tokensSaved ? ((sketch.tokensSaved / (sketch.tokensUsed || 1)) * 100).toFixed(0) : 0}% More Efficient
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-4 text-center">
+                          <div className="bg-background/40 border border-border/50 rounded-xl p-3">
+                            <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">Cumulative Cost</p>
+                            <p className="text-base font-semibold text-foreground font-mono leading-none mt-1">
+                              {(sketch.tokensUsed ?? 0).toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="bg-background/40 border border-border/50 rounded-xl p-3">
+                            <p className="text-[9px] text-emerald-400/90 uppercase font-bold tracking-wider">Accumulated Savings</p>
+                            <p className="text-base font-semibold text-emerald-400 font-mono leading-none mt-1">
+                              {(sketch.tokensSaved ?? 0).toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="bg-background/40 border border-border/50 rounded-xl p-3">
+                            <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">Vision Payload</p>
+                            <p className="text-base font-semibold text-foreground font-mono leading-none mt-1">
+                              ~262,144
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
                       {/* Stats cards grid */}
                       <div className="grid grid-cols-3 gap-4 select-none">
                         <div className="bg-background/50 border border-border rounded-xl p-4 space-y-1">
@@ -1070,7 +1107,36 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           </div>
 
           {/* Chat bottom input panel (Google Search Bar Style rounded-full) */}
-          <form onSubmit={handleSendRefinement} className="p-4 border-t border-border bg-background flex flex-col gap-2 shrink-0">
+          <form onSubmit={handleSendRefinement} className="p-4 border-t border-border bg-background flex flex-col gap-3.5 shrink-0 select-none">
+            
+            {/* Token Optimizer Selector pills */}
+            <div className="flex items-center gap-2 px-1">
+              <button
+                type="button"
+                onClick={() => setVisionMode(false)}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-full text-[10px] font-bold border transition-all cursor-pointer ${
+                  !visionMode
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                    : "bg-card border-border text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0 animate-pulse" />
+                <span>Ultra Savings</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setVisionMode(true)}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-full text-[10px] font-bold border transition-all cursor-pointer ${
+                  visionMode
+                    ? "bg-primary/10 border-primary/30 text-primary"
+                    : "bg-card border-border text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Scan className="w-3.5 h-3.5 shrink-0" />
+                <span>Hi-Fi Vision</span>
+              </button>
+            </div>
+
             <div className="relative flex items-center bg-card border border-border rounded-full px-4.5 py-1 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
               <input
                 type="text"
