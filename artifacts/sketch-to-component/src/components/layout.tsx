@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
-import { Settings, History as HistoryIcon, Sparkles, ChevronDown, Layers, Activity, Key, Save } from "lucide-react";
-import { useGetSketchStats } from "@workspace/api-client-react";
+import { Settings, History as HistoryIcon, Sparkles, ChevronDown, Layers, Activity, Key, Save, Coins, ShoppingBag } from "lucide-react";
+import { useGetSketchStats, useGetPaymentPlan } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import logoUrl from "@/assets/logo.svg";
-import { UserButton } from "@clerk/clerk-react";
+import { UserButton, useUser } from "@clerk/clerk-react";
 
 const DEFAULT_MODEL = "gemini-2.0-flash";
 const MODEL_MIGRATION_KEY = "gemini_model_migrated_2_0";
@@ -40,7 +40,16 @@ export function GeminiSparkleIcon({ className = "w-5 h-5" }: { className?: strin
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
+  const { user } = useUser();
+  const userId = user?.id || "default-user";
   const { data: stats, isLoading: statsLoading } = useGetSketchStats();
+  const { data: planStatus } = useGetPaymentPlan({
+    request: {
+      headers: {
+        "x-user-id": userId,
+      },
+    },
+  });
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
   
@@ -141,6 +150,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 : "nav-pill"
             }`}>
               History
+            </button>
+          </Link>
+
+          <Link href="/marketplace">
+            <button className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all select-none ${
+              location.startsWith("/marketplace") 
+                ? "nav-pill-active bg-card" 
+                : "nav-pill"
+            }`}>
+              Marketplace
             </button>
           </Link>
 
@@ -256,6 +275,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   <span className="text-sm">Pricing</span>
                 </div>
               </Link>
+
+              <Link href="/marketplace">
+                <div className={`flex items-center gap-3 px-3.5 py-2.5 rounded-full transition-all cursor-pointer select-none ${
+                  location === "/marketplace"
+                    ? "bg-primary/10 text-primary font-medium" 
+                    : "text-muted-foreground hover:bg-primary/5 hover:text-foreground"
+                }`}>
+                  <ShoppingBag className="w-4 h-4" />
+                  <span className="text-sm">Marketplace</span>
+                </div>
+              </Link>
             </div>
 
             {/* Subtle System Stats (Subtle text labels) */}
@@ -286,6 +316,40 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   </div>
                 </div>
               ) : null}
+            </div>
+
+            {/* My Profile & Wallet */}
+            <div className="space-y-3 px-3 pt-4 border-t border-border select-none">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase">My Profile & Wallet</span>
+                <span className={`inline-flex items-center gap-1 text-[9px] font-extrabold px-2.5 py-0.5 rounded-full select-none capitalize ${
+                  planStatus?.plan === "weekly" ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/25" :
+                  planStatus?.plan === "monthly" ? "bg-amber-500/10 text-amber-400 border border-amber-500/25" :
+                  planStatus?.plan === "yearly" ? "bg-purple-500/10 text-purple-400 border border-purple-500/25" :
+                  "bg-muted text-muted-foreground border border-border"
+                }`}>
+                  {planStatus?.plan ? `${planStatus.plan} Pro` : "Free Tier"}
+                </span>
+              </div>
+              
+              <div className="bg-card/45 border border-border/80 rounded-xl p-3 space-y-2 relative overflow-hidden backdrop-blur-md">
+                <div className="absolute top-0 right-0 w-12 h-12 rounded-full bg-amber-500/5 blur-xl pointer-events-none" />
+                <div className="flex justify-between items-center text-xs">
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <Coins className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Imagica Credits</span>
+                  </div>
+                  <span className="font-bold text-amber-400 font-mono">
+                    ✨ {planStatus?.credits ?? 0}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-xs pt-1 border-t border-border/30">
+                  <span className="text-muted-foreground">Direct Cash</span>
+                  <span className="font-semibold text-emerald-400 font-mono">
+                    ₹{planStatus?.cash ?? 0}
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* Token Allocation Pool (Interactive Google Labs aesthetic) */}

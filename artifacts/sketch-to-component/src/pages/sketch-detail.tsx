@@ -29,6 +29,7 @@ import {
   Scan,
   Brain,
   ExternalLink,
+  ShoppingBag,
 } from "lucide-react";
 import {
   Dialog,
@@ -579,6 +580,87 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <ExternalLink className="w-3.5 h-3.5" />
             Open Preview
           </button>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <button
+                className="px-3.5 py-1.5 rounded-full border border-border bg-card text-xs text-amber-500 hover:bg-amber-500/10 hover:border-amber-500/30 transition-all flex items-center gap-1.5 select-none cursor-pointer"
+              >
+                <ShoppingBag className="w-3.5 h-3.5 text-amber-500" />
+                Sell Layout
+              </button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[400px] bg-card border border-border text-foreground rounded-2xl">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-foreground font-headline text-base">
+                  <ShoppingBag className="w-4 h-4 text-amber-500" />
+                  Sell Design Layout
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  List this layout for sale in the Imagica Marketplace catalog.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Price in INR</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">₹</span>
+                    <Input
+                      type="number"
+                      defaultValue="250"
+                      id="details-listing-price"
+                      className="pl-7 bg-background border-border text-xs rounded-xl font-mono text-foreground"
+                    />
+                  </div>
+                </div>
+                <div className="bg-muted/40 rounded-xl p-3 border border-border/80 text-[10px] space-y-2 leading-relaxed text-muted-foreground">
+                  <div className="flex justify-between items-center text-foreground font-semibold">
+                    <span>Revenue Split:</span>
+                    <span>60% Credits / 40% Cash</span>
+                  </div>
+                  <div className="h-px bg-border/40" />
+                  <p className="leading-relaxed">
+                    Sellers earn 60% of the value in Imagica Credits (redeemable for active plans/models) and 40% value in direct bank cash transfers.
+                  </p>
+                </div>
+              </div>
+              <DialogFooter className="gap-2">
+                <Button variant="ghost" onClick={() => {}} className="rounded-full text-xs text-muted-foreground hover:text-foreground">
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={async () => {
+                    const priceInput = document.getElementById("details-listing-price") as HTMLInputElement;
+                    const price = parseInt(priceInput?.value || "250");
+                    if (isNaN(price) || price <= 0) {
+                      toast({ title: "Invalid price", description: "Please enter a valid INR amount", variant: "destructive" });
+                      return;
+                    }
+                    try {
+                      const res = await fetch("/api/marketplace/list", {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          "x-user-id": "default-user"
+                        },
+                        body: JSON.stringify({ sketchId: sketch.id, price })
+                      });
+                      if (!res.ok) throw new Error();
+                      toast({
+                        title: "Listed successfully!",
+                        description: `"${sketch.title}" is listed on the marketplace for ₹${price}.`,
+                      });
+                    } catch {
+                      toast({ title: "Listing failed", description: "Could not list on marketplace", variant: "destructive" });
+                    }
+                  }}
+                  className="bg-amber-600 hover:bg-amber-700 text-white rounded-full text-xs font-semibold"
+                >
+                  List Layout
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {/* Dialog for Regenerate */}
           <Dialog open={isRegenerateOpen} onOpenChange={setIsRegenerateOpen}>

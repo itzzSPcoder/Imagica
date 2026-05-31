@@ -1,11 +1,14 @@
 import { useListSketches, useDeleteSketch } from "@workspace/api-client-react";
 import { Link } from "wouter";
 import { format, isToday, isAfter, subDays, startOfDay } from "date-fns";
-import { FileCode2, Clock, ArrowRight, Trash2, Sparkles } from "lucide-react";
+import { FileCode2, Clock, ArrowRight, Trash2, Sparkles, ShoppingBag } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 const FRAMEWORK_LABELS: Record<string, string> = {
   "react-tailwind": "React + Tailwind",
@@ -38,6 +41,52 @@ export default function History() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedItems, setSelectedItems] = useState<Record<number, boolean>>({});
+  
+  // Marketplace Listing Modal State
+  const [listingSketch, setListingSketch] = useState<{ id: number; title: string } | null>(null);
+  const [listPrice, setListPrice] = useState("250");
+  const [listingInProgress, setListingInProgress] = useState(false);
+
+  const handleListConfirm = async () => {
+    if (!listingSketch) return;
+    const price = parseInt(listPrice);
+    if (isNaN(price) || price <= 0) {
+      toast({
+        title: "Invalid Price",
+        description: "Please specify a valid positive INR price.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setListingInProgress(true);
+    try {
+      const res = await fetch("/api/marketplace/list", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": "default-user" // Real user ID is resolved on backend headers or default-user
+        },
+        body: JSON.stringify({ sketchId: listingSketch.id, price })
+      });
+      if (!res.ok) {
+        throw new Error("Failed to list template.");
+      }
+      toast({
+        title: "Listed on Marketplace!",
+        description: `"${listingSketch.title}" is now live for sale at ₹${price}.`,
+      });
+      setListingSketch(null);
+    } catch {
+      toast({
+        title: "Listing failed",
+        description: "Could not publish design listing to the marketplace.",
+        variant: "destructive"
+      });
+    } finally {
+      setListingInProgress(false);
+    }
+  };
 
   const handleDeleteItem = (e: React.MouseEvent, id: number) => {
     e.stopPropagation();
@@ -203,9 +252,24 @@ export default function History() {
                                 {FRAMEWORK_LABELS[sketch.framework] ?? sketch.framework}
                               </span>
 
-                              <div className="flex select-none items-center gap-1 font-sans text-[10px] font-medium text-muted-foreground">
-                                <Clock className="h-3 w-3" />
-                                <span>{format(new Date(sketch.createdAt), "MMM d, yyyy · h:mm a")}</span>
+                              <div className="flex select-none items-center justify-between font-sans text-[10px] font-medium text-muted-foreground mt-1">
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  <span>{format(new Date(sketch.createdAt), "MMM d, yyyy · h:mm a")}</span>
+                                </div>
+                                
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setListingSketch({ id: sketch.id, title: sketch.title });
+                                  }}
+                                  className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 hover:bg-amber-500/25 transition-all text-[9px] font-bold select-none cursor-pointer"
+                                >
+                                  <ShoppingBag className="w-2.5 h-2.5" />
+                                  Sell Layout
+                                </button>
                               </div>
                             </div>
                           </div>
@@ -219,8 +283,75 @@ export default function History() {
           })}
         </div>
       )}
+
+      {/* Sell Template Marketplace Dialog */}
+      <Dialog open={listingSketch !== null} onOpenChange={(open) => !open && setListingSketch(null)}>
+        <DialogContent className="border border-border bg-card text-foreground rounded-2xl max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground font-headline text-base">
+              <ShoppingBag className="w-4 h-4 text-amber-500" />
+              Sell Design Layout
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              List "{listingSketch?.title}" for sale in the Imagica Marketplace.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Set Price (INR)</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">₹</span>
+                <Input
+                  type="number"
+                  value={listPrice}
+                  onChange={(e) => setListPrice(e.target.value)}
+                  placeholder="250"
+                  className="pl-7 bg-background border border-border text-xs rounded-xl font-mono"
+                />
+              </div>
+            </div>
+
+            {/* Split breakdown details info card */}
+            <div className="bg-muted/40 rounded-xl p-3 border border-border/80 text-[10px] space-y-2 leading-relaxed text-muted-foreground">
+              <div className="flex justify-between items-center text-foreground font-semibold">
+                <span>Revenue Split:</span>
+                <span>60% Credits / 40% Cash</span>
+              </div>
+              <div className="h-px bg-border/40" />
+              <div className="flex justify-between items-center">
+                <span>Imagica Credits earned (60%):</span>
+                <span className="font-mono text-amber-400 font-bold">
+                  ✨ {Math.round((parseInt(listPrice) || 0) * 0.6)} Credits
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>Direct Cash transfer (40%):</span>
+                <span className="font-mono text-emerald-400 font-bold">
+                  ₹{Math.round((parseInt(listPrice) || 0) * 0.4)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button 
+              variant="secondary" 
+              onClick={() => setListingSketch(null)} 
+              className="bg-card text-foreground hover:bg-muted rounded-xl text-xs h-9"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleListConfirm}
+              disabled={listingInProgress}
+              className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs h-9 font-semibold"
+            >
+              {listingInProgress ? "Listing..." : "Confirm Listing"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-
-

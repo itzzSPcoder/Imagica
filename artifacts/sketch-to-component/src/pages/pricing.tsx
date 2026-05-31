@@ -228,7 +228,7 @@ export default function Pricing() {
                     </div>
 
                     {/* Call-to-action button */}
-                    <div className="mt-8">
+                    <div className="mt-8 space-y-2">
                       {isCurrent ? (
                         <Button
                           variant="outline"
@@ -238,28 +238,76 @@ export default function Pricing() {
                           Active Subscription
                         </Button>
                       ) : (
-                        <button
-                          onClick={() => handleUpgrade(tier.id)}
-                          disabled={pendingPlan !== null}
-                          className={`w-full py-2.5 rounded-full text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer border-0 shadow-sm ${
-                            tier.popular
-                              ? "bg-foreground text-background hover:opacity-90"
-                              : "bg-muted text-foreground hover:bg-muted/80 border border-border"
-                          }`}
-                        >
-                          {isPending ? (
-                            <>
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              Initializing...
-                            </>
-                          ) : (
-                            <>
-                              <Crown className="w-3.5 h-3.5 shrink-0" />
-                              <span>{tier.cta}</span>
-                              <ArrowRight className="w-3.5 h-3.5 shrink-0" />
-                            </>
-                          )}
-                        </button>
+                        <>
+                          <button
+                            onClick={() => handleUpgrade(tier.id)}
+                            disabled={pendingPlan !== null}
+                            className={`w-full py-2.5 rounded-full text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer border-0 shadow-sm ${
+                              tier.popular
+                                ? "bg-foreground text-background hover:opacity-90"
+                                : "bg-muted text-foreground hover:bg-muted/80 border border-border"
+                            }`}
+                          >
+                            {isPending ? (
+                              <>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                Initializing...
+                              </>
+                            ) : (
+                              <>
+                                <Crown className="w-3.5 h-3.5 shrink-0" />
+                                <span>{tier.cta}</span>
+                                <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                              </>
+                            )}
+                          </button>
+
+                          <button
+                            onClick={async () => {
+                              const cost = tier.id === "weekly" ? 150 : tier.id === "monthly" ? 500 : 4000;
+                              if (!planStatus?.credits || planStatus.credits < cost) {
+                                toast({
+                                  title: "Insufficient Credits",
+                                  description: `You need ${cost} Credits to buy this plan, but you only have ${planStatus?.credits ?? 0} Credits.`,
+                                  variant: "destructive",
+                                });
+                                return;
+                              }
+                              setPendingPlan(tier.id);
+                              try {
+                                const response = await fetch("/api/payments/buy-with-credits", {
+                                  method: "POST",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                    "x-user-id": userId,
+                                  },
+                                  body: JSON.stringify({ plan: tier.id }),
+                                });
+                                const data = await response.json();
+                                if (!response.ok) {
+                                  throw new Error(data.error || "Failed to redeem plan using credits.");
+                                }
+                                toast({
+                                  title: "Plan Activated!",
+                                  description: `Successfully upgraded to ${tier.name} using Imagica Credits.`,
+                                });
+                                refetchPlan();
+                              } catch (err: any) {
+                                toast({
+                                  title: "Redemption error",
+                                  description: err.message,
+                                  variant: "destructive",
+                                });
+                              } finally {
+                                setPendingPlan(null);
+                              }
+                            }}
+                            disabled={pendingPlan !== null}
+                            className="w-full py-2 rounded-full text-[10px] font-bold transition-all flex items-center justify-center gap-1 bg-amber-500/10 border border-amber-500/30 text-amber-500 hover:bg-amber-500/20 cursor-pointer"
+                          >
+                            Redeem with {tier.id === "weekly" ? "150" : tier.id === "monthly" ? "500" : "4,000"} Credits
+                          </button>
+                        </>
                       )}
                     </div>
 
