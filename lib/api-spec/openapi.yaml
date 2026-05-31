@@ -14,6 +14,8 @@ tags:
     description: Sketch-to-component conversions
   - name: gemini
     description: Gemini AI chat and image operations
+  - name: payments
+    description: Billing and subscription operations
 paths:
   /healthz:
     get:
@@ -286,6 +288,32 @@ paths:
               schema:
                 $ref: "#/components/schemas/GeminiImageOutput"
 
+  /payments/plan:
+    get:
+      operationId: getPaymentPlan
+      tags: [payments]
+      summary: Get the user's current payment plan and conversion usage
+      responses:
+        "200":
+          description: User plan details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentPlanStatus"
+
+  /payments/checkout:
+    post:
+      operationId: createCheckoutSession
+      tags: [payments]
+      summary: Create a new billing checkout session
+      responses:
+        "200":
+          description: Session details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutSessionResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -319,6 +347,10 @@ components:
           type: string
         instructions:
           type: ["string", "null"]
+        tokensUsed:
+          type: integer
+        tokensSaved:
+          type: integer
         createdAt:
           type: string
           format: date-time
@@ -331,6 +363,8 @@ components:
         - imageDataUrl
         - generatedCode
         - framework
+        - tokensUsed
+        - tokensSaved
         - createdAt
         - updatedAt
 
@@ -372,10 +406,16 @@ components:
             type: integer
         recentCount:
           type: integer
+        totalTokensUsed:
+          type: integer
+        totalTokensSaved:
+          type: integer
       required:
         - total
         - byFramework
         - recentCount
+        - totalTokensUsed
+        - totalTokensSaved
 
     GeminiConversation:
       type: object
@@ -475,3 +515,31 @@ components:
           type: string
       required:
         - error
+
+    PaymentPlanStatus:
+      type: object
+      properties:
+        plan:
+          type: string
+          enum: [free, pro, enterprise]
+        userId:
+          type: ["string", "null"]
+        conversionsUsed:
+          type: integer
+        conversionsLimit:
+          type: integer
+      required:
+        - plan
+        - conversionsUsed
+        - conversionsLimit
+
+    CheckoutSessionResponse:
+      type: object
+      properties:
+        url:
+          type: string
+        sessionId:
+          type: string
+      required:
+        - url
+        - sessionId

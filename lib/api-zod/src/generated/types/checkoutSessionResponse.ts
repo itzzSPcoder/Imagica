@@ -6,4 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type SketchStatsByFramework = {[key: string]: number};
+export interface CheckoutSessionResponse {
+  url: string;
+  sessionId: string;
+}
