@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { BankDetails } from './bankDetails';
 import type { PaymentPlanStatusPlan } from './paymentPlanStatusPlan';
 
 export interface PaymentPlanStatus {
@@ -13,4 +14,7 @@ export interface PaymentPlanStatus {
   userId?: string | null;
   conversionsUsed: number;
   conversionsLimit: number;
+  credits?: number;
+  cash?: number;
+  bankDetails?: BankDetails;
 }

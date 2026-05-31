@@ -111,6 +111,13 @@ export interface GeminiError {
   error: string;
 }
 
+export interface BankDetails {
+  bankName?: string;
+  accountNum?: string;
+  ifsc?: string;
+  upiId?: string;
+}
+
 export type PaymentPlanStatusPlan = typeof PaymentPlanStatusPlan[keyof typeof PaymentPlanStatusPlan];
 
 
@@ -118,6 +125,9 @@ export const PaymentPlanStatusPlan = {
   free: 'free',
   pro: 'pro',
   enterprise: 'enterprise',
+  weekly: 'weekly',
+  monthly: 'monthly',
+  yearly: 'yearly',
 } as const;
 
 export interface PaymentPlanStatus {
@@ -126,6 +136,9 @@ export interface PaymentPlanStatus {
   userId?: string | null;
   conversionsUsed: number;
   conversionsLimit: number;
+  credits?: number;
+  cash?: number;
+  bankDetails?: BankDetails;
 }
 
 export interface CheckoutSessionResponse {

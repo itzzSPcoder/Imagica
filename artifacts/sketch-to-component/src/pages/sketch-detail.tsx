@@ -10,6 +10,7 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CodeBlock } from "@/components/code-block";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
@@ -344,7 +345,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         } else if (data.type === "done") {
           setIsStreaming(false);
           eventSource.close();
-          queryClient.invalidateQueries({ queryKey: [`/api/sketches/${sketch.id}`] });
+          queryClient.invalidateQueries({ queryKey: getGetSketchQueryKey(id) });
         }
       } catch (e) {
         console.error("Failed to parse SSE event", e);
@@ -362,6 +363,15 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       eventSource.close();
     };
   }, [sketch?.id, sketch?.generatedCode, queryClient]);
+
+  useEffect(() => {
+    if (!streamError) return;
+    toast({
+      title: "Generation failed",
+      description: streamError,
+      variant: "destructive",
+    });
+  }, [streamError, toast]);
 
   // Bind keyboard shortcut Ctrl+Enter to trigger regeneration/run if on sketch detail
   useEffect(() => {
@@ -502,11 +512,16 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   const previewHtml = buildPreviewHtml(codeToRender, sketch.framework);
 
   const rawAnalysis = (sketch as any).analysis;
-  const analysis = (rawAnalysis
-    ? typeof rawAnalysis === "string"
-      ? JSON.parse(rawAnalysis)
-      : rawAnalysis
-    : streamedAnalysis) as {
+  let parsedStoredAnalysis: typeof streamedAnalysis = null;
+  if (rawAnalysis) {
+    try {
+      parsedStoredAnalysis =
+        typeof rawAnalysis === "string" ? JSON.parse(rawAnalysis) : rawAnalysis;
+    } catch {
+      parsedStoredAnalysis = null;
+    }
+  }
+  const analysis = (parsedStoredAnalysis ?? streamedAnalysis) as {
     elements?: { type: string; label: string; count?: number }[];
     layout?: string;
     colorScheme?: string;
@@ -1076,7 +1091,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
                         {/* Rendering iframe */}
                         <iframe
-                          key={sketch.id}
+                          key={`${sketch.id}-${codeToRender.length}`}
                           srcDoc={previewHtml}
                           className="flex-1 w-full border-0 bg-white"
                           title="Component Preview"

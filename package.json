@@ -7,7 +7,7 @@
     "build:app": "pnpm --filter @workspace/sketch-to-component run build && pnpm --filter @workspace/api-server run build",
     "start": "node --enable-source-maps artifacts/api-server/dist/index.mjs",
     "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+    "typecheck": "pnpm run typecheck:libs && pnpm --filter @workspace/sketch-to-component --filter @workspace/api-server --filter @workspace/mockup-sandbox run typecheck"
   },
   "private": true,
   "engines": {

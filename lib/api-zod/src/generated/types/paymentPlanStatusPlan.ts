@@ -13,4 +13,7 @@ export const PaymentPlanStatusPlan = {
   free: 'free',
   pro: 'pro',
   enterprise: 'enterprise',
+  weekly: 'weekly',
+  monthly: 'monthly',
+  yearly: 'yearly',
 } as const;

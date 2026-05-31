@@ -516,18 +516,36 @@ components:
       required:
         - error
 
+    BankDetails:
+      type: object
+      properties:
+        bankName:
+          type: string
+        accountNum:
+          type: string
+        ifsc:
+          type: string
+        upiId:
+          type: string
+
     PaymentPlanStatus:
       type: object
       properties:
         plan:
           type: string
-          enum: [free, pro, enterprise]
+          enum: [free, pro, enterprise, weekly, monthly, yearly]
         userId:
           type: ["string", "null"]
         conversionsUsed:
           type: integer
         conversionsLimit:
           type: integer
+        credits:
+          type: integer
+        cash:
+          type: integer
+        bankDetails:
+          $ref: "#/components/schemas/BankDetails"
       required:
         - plan
         - conversionsUsed

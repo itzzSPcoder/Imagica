@@ -207,10 +207,18 @@ export const GenerateGeminiImageResponse = zod.object({
  * @summary Get the user's current payment plan and conversion usage
  */
 export const GetPaymentPlanResponse = zod.object({
-  "plan": zod.enum(['free', 'pro', 'enterprise']),
+  "plan": zod.enum(['free', 'pro', 'enterprise', 'weekly', 'monthly', 'yearly']),
   "userId": zod.string().nullish(),
   "conversionsUsed": zod.number(),
-  "conversionsLimit": zod.number()
+  "conversionsLimit": zod.number(),
+  "credits": zod.number().optional(),
+  "cash": zod.number().optional(),
+  "bankDetails": zod.object({
+  "bankName": zod.string().optional(),
+  "accountNum": zod.string().optional(),
+  "ifsc": zod.string().optional(),
+  "upiId": zod.string().optional()
+}).optional()
 })
 
 

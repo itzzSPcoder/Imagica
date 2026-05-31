@@ -1,12 +1,26 @@
 import { useParams } from "wouter";
-import { useGetSketch } from "@workspace/api-client-react";
+import { useQuery } from "@tanstack/react-query";
+import { getGetSketchQueryOptions } from "@workspace/api-client-react";
 import { buildPreviewHtml } from "@/lib/preview-html";
 import { Loader2 } from "lucide-react";
 
 export default function PreviewStandalone() {
   const params = useParams();
   const id = Number(params.id);
-  const { data: sketch, isLoading } = useGetSketch(id);
+  const isValidId = Number.isFinite(id) && id > 0;
+  const { data: sketch, isLoading } = useQuery({
+    ...getGetSketchQueryOptions(id),
+    enabled: isValidId,
+  });
+
+  if (!isValidId) {
+    return (
+      <div className="w-screen h-screen flex flex-col items-center justify-center bg-slate-950 text-slate-200 p-6 text-center">
+        <h1 className="text-xl font-bold text-red-500 mb-2 font-mono">INVALID PREVIEW LINK</h1>
+        <p className="text-xs text-slate-400">Open a preview from a valid sketch in your history.</p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

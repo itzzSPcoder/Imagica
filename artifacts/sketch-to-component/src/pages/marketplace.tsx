@@ -94,10 +94,11 @@ export default function Marketplace() {
   }, [planStatus]);
 
   const handleBuy = async (sketchId: number, price: number) => {
-    if (planStatus && planStatus.credits < price) {
+    const credits = planStatus?.credits ?? 0;
+    if (credits < price) {
       toast({
         title: "Insufficient Credits",
-        description: `This layout costs ${price} Credits (₹${price}), but you only have ${planStatus.credits} Credits. Upgrade plans or earn credits by selling your own designs.`,
+        description: `This layout costs ${price} Credits (₹${price}), but you only have ${credits} Credits. Upgrade plans or earn credits by selling your own designs.`,
         variant: "destructive"
       });
       return;

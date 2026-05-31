@@ -7,6 +7,7 @@
  */
 
 export * from './apiError';
+export * from './bankDetails';
 export * from './checkoutSessionResponse';
 export * from './geminiConversation';
 export * from './geminiConversationInput';
