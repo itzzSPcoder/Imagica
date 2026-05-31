@@ -343,21 +343,21 @@ function buildIconStubs(names: string[]): string {
 // ── shadcn/ui component stubs ────────────────────────────────────────────────
 
 const SHADCN_STUBS = `
-    // ── shadcn/ui stubs ───────────────────────────────────────────────────────
+    // ── shadcn/ui stubs (professional zinc palette) ───────────────────────────
     const Button = ({children,className='',variant='default',size='default',disabled,...p}) => {
-      const vars={default:'bg-slate-900 text-white hover:bg-slate-700',secondary:'bg-slate-100 text-slate-900 hover:bg-slate-200',destructive:'bg-red-500 text-white hover:bg-red-600',outline:'border border-slate-300 bg-white hover:bg-slate-50 text-slate-900',ghost:'hover:bg-slate-100 text-slate-900',link:'underline-offset-4 hover:underline text-slate-900 px-0 py-0'};
+      const vars={default:'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm',secondary:'bg-zinc-100 text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700',destructive:'bg-red-600 text-white hover:bg-red-700',outline:'border border-zinc-300 bg-white hover:bg-zinc-50 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:hover:bg-zinc-900 dark:text-zinc-100',ghost:'hover:bg-zinc-100 text-zinc-700 dark:hover:bg-zinc-800 dark:text-zinc-300',link:'underline-offset-4 hover:underline text-indigo-600 px-0 py-0'};
       const sizes={default:'h-10 px-4 py-2 text-sm',sm:'h-9 px-3 text-xs',lg:'h-11 px-8 text-base',icon:'h-10 w-10 p-0'};
-      return <button disabled={disabled} className={'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none disabled:opacity-50 disabled:pointer-events-none '+(vars[variant]||vars.default)+' '+(sizes[size]||sizes.default)+' '+className} {...p}>{children}</button>;
+      return <button disabled={disabled} className={'inline-flex items-center justify-center rounded-lg font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30 disabled:opacity-50 disabled:pointer-events-none '+(vars[variant]||vars.default)+' '+(sizes[size]||sizes.default)+' '+className} {...p}>{children}</button>;
     };
-    const Input = ({className='',...p}) => <input className={'flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 disabled:opacity-50 '+className} {...p}/>;
-    const Textarea = ({className='',...p}) => <textarea className={'flex min-h-[80px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 '+className} {...p}/>;
-    const Label = ({children,className='',...p}) => <label className={'text-sm font-medium leading-none peer-disabled:opacity-70 '+className} {...p}>{children}</label>;
-    const Separator = ({orientation='horizontal',className='',...p}) => <div role="separator" className={(orientation==='horizontal'?'h-[1px] w-full':'h-full w-[1px]')+' bg-slate-200 my-1 '+className} {...p}/>;
+    const Input = ({className='',...p}) => <input className={'flex h-10 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 '+className} {...p}/>;
+    const Textarea = ({className='',...p}) => <textarea className={'flex min-h-[80px] w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 '+className} {...p}/>;
+    const Label = ({children,className='',...p}) => <label className={'text-sm font-medium text-zinc-700 dark:text-zinc-300 leading-none peer-disabled:opacity-70 '+className} {...p}>{children}</label>;
+    const Separator = ({orientation='horizontal',className='',...p}) => <div role="separator" className={(orientation==='horizontal'?'h-px w-full':'h-full w-px')+' bg-zinc-200 dark:bg-zinc-800 my-1 '+className} {...p}/>;
     const Badge = ({children,variant='default',className='',...p}) => {
-      const vars={default:'bg-slate-900 text-white border-transparent',secondary:'bg-slate-100 text-slate-900 border-transparent',destructive:'bg-red-500 text-white border-transparent',outline:'text-slate-900 border-slate-300'};
-      return <span className={'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors '+(vars[variant]||vars.default)+' '+className} {...p}>{children}</span>;
+      const vars={default:'bg-indigo-600 text-white border-transparent',secondary:'bg-zinc-100 text-zinc-700 border-transparent dark:bg-zinc-800 dark:text-zinc-300',destructive:'bg-red-600 text-white border-transparent',outline:'text-zinc-700 border-zinc-300 dark:text-zinc-300 dark:border-zinc-700'};
+      return <span className={'inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors '+(vars[variant]||vars.default)+' '+className} {...p}>{children}</span>;
     };
-    const Card = ({children,className='',...p}) => <div className={'rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm '+className} {...p}>{children}</div>;
+    const Card = ({children,className='',...p}) => <div className={'rounded-xl border border-zinc-200 bg-white text-zinc-950 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 '+className} {...p}>{children}</div>;
     const CardHeader = ({children,className='',...p}) => <div className={'flex flex-col space-y-1.5 p-6 '+className} {...p}>{children}</div>;
     const CardTitle = ({children,className='',...p}) => <h3 className={'font-semibold leading-none tracking-tight text-xl '+className} {...p}>{children}</h3>;
     const CardDescription = ({children,className='',...p}) => <p className={'text-sm text-slate-500 '+className} {...p}>{children}</p>;

@@ -99,31 +99,33 @@ function buildPrompt(framework: string, instructions?: string | null): string {
   }
 
   const aestheticsAndImagesGuide = `
-VISUAL DESIGN & AESTHETICS RULES (MAKE IT A 'DASHING COOL UI'):
-1. NEVER output basic, plain, or boring layouts. Create breathtaking, high-end, premium, and futuristic UIs that "WOW" the user at first glance.
-2. Rich Themes & Gradients: Use deep, elegant dark modes (e.g. background gradient bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950) or modern glassmorphic light themes. Use vibrant background gradients, text gradients (e.g. bg-clip-text text-transparent bg-gradient-to-r from-teal-400 via-cyan-400 to-indigo-400), and colorful button gradients.
-3. Glassmorphism: Add depth using frosted glass containers (e.g. backdrop-blur-md bg-white/5 border border-white/10 for dark mode, or bg-slate-900/40 border border-slate-800/50 for light mode).
-4. Details & Shadows: Use generous padding, spacious layout gaps, highly rounded corners (rounded-2xl, rounded-3xl), and soft outer glowing drop shadows (shadow-2xl shadow-indigo-500/10).
-5. Micro-Animations & Hover Effects: Every button, link, card, and interactive element MUST have silky-smooth transition effects (transition-all duration-300 ease-in-out) and tactile hover/active animations (e.g. hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-lg active:scale-95). Make inputs glow on focus.
-6. Unicode/Inline SVGs: Use clean inline SVGs or unicode for gorgeous modern icons.
+PROFESSIONAL UI DESIGN SYSTEM (STRICT — NO CHEAP / TEMPLATE LOOK):
+Your output must look like a shipped product from a top-tier SaaS company (Linear, Vercel, Stripe, Notion, Apple). Polished, restrained, and credible — never flashy, gimmicky, or "AI slop".
+
+DESIGN QUALITY BAR:
+1. Restrained palette: Use ONE primary accent (indigo-600 or blue-600) + neutral zinc/slate scale. Never rainbow gradients, neon colors, or 5+ competing hues.
+2. Typography hierarchy: Clear scale — text-xs labels (uppercase tracking-wide text-muted), text-sm body, text-base subheads, text-xl/2xl headings. font-semibold for titles, font-medium for labels, normal for body. Never use all-bold or random font sizes.
+3. Spacing rhythm: Follow an 8px grid — p-4/p-6/p-8, gap-4/gap-6, space-y-4/space-y-6. Generous whitespace; never cram elements together.
+4. Surfaces & depth: Prefer clean flat cards with border border-zinc-200/800 and bg-white/dark:bg-zinc-950. Use shadow-sm or shadow-md sparingly — NOT shadow-2xl glow on every element.
+5. Subtle polish only: One accent gradient max (e.g. primary CTA button). Hover states: hover:bg-zinc-50 dark:hover:bg-zinc-900, transition-colors duration-200. No scale-bounce on every element.
+6. Layout discipline: Use CSS Grid/Flexbox with max-w-7xl mx-auto containers. Align items consistently. Sidebars 240–280px, content areas with proper padding.
+7. Components: Rounded-lg or rounded-xl (not rounded-3xl everywhere). Inputs with h-10, consistent border-zinc-300 dark:border-zinc-700, focus:ring-2 focus:ring-indigo-500/20.
+8. Content: Use realistic SaaS copy ("Revenue", "Active Users", "Settings") — never Lorem ipsum, "Click here", or placeholder gibberish.
+9. Icons: Lucide-style inline SVGs, w-4 h-4 or w-5 h-5, text-zinc-500 — not oversized emoji or cartoon icons.
+10. AVOID these cheap patterns: purple-pink gradients on everything, glassmorphism on every card, pulsing animations, gradient text on headings, thick colored borders, clip-art style layouts.
+
+COLOR TOKENS (pick one theme and stick to it):
+- Light pro: bg-zinc-50 page, bg-white cards, text-zinc-900, text-zinc-500 muted, border-zinc-200, primary bg-indigo-600 hover:bg-indigo-700 text-white
+- Dark pro: bg-zinc-950 page, bg-zinc-900 cards, text-zinc-100, text-zinc-400 muted, border-zinc-800, primary bg-indigo-500 hover:bg-indigo-600
 
 REAL WORKING MOCK IMAGES:
-1. NEVER use empty src="", local file paths like "/avatar.png", "/profile.jpg", or placeholder.png. This breaks the live preview sandbox!
-2. ALWAYS use real, high-resolution, working public image URLs from Unsplash. Curate your image choices based on context:
-   - User/Team Profile Avatars:
-     * Female 1: https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80
-     * Female 2: https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80
-     * Male 1: https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80
-     * Male 2: https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80
-   - Modern Tech/SaaS Dashboards, Banners, and Breathtaking Backgrounds:
-     * Analytics: https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&auto=format&fit=crop&q=80
-     * Workspace: https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&auto=format&fit=crop&q=80
-     * Collaboration: https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=800&auto=format&fit=crop&q=80
-   - Premium Product Showcase Cards:
-     * Wireless Headphones: https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&auto=format&fit=crop&q=80
-     * Sneakers: https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&auto=format&fit=crop&q=80
-     * Watch: https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&auto=format&fit=crop&q=80
-   - Generic Sizing Placeholders: If specific dimensions are required, use: https://placehold.co/WIDTHxHEIGHT/1e1b4b/ffffff?text=Label (use deep indigo color code 1e1b4b).`;
+1. NEVER use empty src="", local file paths like "/avatar.png", or broken placeholders — this breaks the live preview sandbox!
+2. ALWAYS use real, high-resolution Unsplash URLs curated to context:
+   - Avatars: https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80
+   - Dashboard/tech: https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&auto=format&fit=crop&q=80
+   - Workspace: https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&auto=format&fit=crop&q=80
+   - Product: https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&auto=format&fit=crop&q=80
+   - Fallback dimensions: https://placehold.co/WIDTHxHEIGHT/18181b/a1a1aa?text=Label (zinc palette only)`;
 
   let prompt = `You are an expert UI/UX analyst and full-stack developer. The user will give you a photo of a hand-drawn wireframe or UI sketch along with their preferred output framework: ${friendlyFramework}.
 
@@ -222,6 +224,8 @@ Default framework if not specified: React + Tailwind`;
 
   if (instructions) {
     prompt += `\n\nAdditional instructions from the user: ${instructions}`;
+  } else {
+    prompt += `\n\nDefault styling: Professional SaaS product UI — clean zinc/indigo palette, generous whitespace, subtle borders, credible typography hierarchy. No flashy gradients or template aesthetics.`;
   }
 
   return prompt;

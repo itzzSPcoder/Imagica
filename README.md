@@ -17,6 +17,43 @@ Imagica is an elite, industrial-grade, AI-powered developer workbench that trans
 
 ---
 
+## ✨ Recent Updates (Changelog)
+
+### May 2026 — Professional UI Generation & Stability
+
+**Professional output quality**
+- Rewrote Gemini generation prompts to target **production-grade SaaS aesthetics** (Linear / Stripe / Vercel style) instead of flashy gradient-heavy templates
+- Default styling baseline applied when no custom instructions are provided — restrained zinc/indigo palette, 8px spacing grid, subtle borders
+- Live preview shadcn/ui stubs upgraded to match professional zinc design tokens
+
+**Marketplace & billing**
+- Design Marketplace — list, browse, and buy sketch layouts with Imagica Credits
+- Seller dashboard with 60% Credits / 40% Cash revenue split
+- Pricing plans (weekly, monthly, yearly) with credit redemption and Stripe checkout simulation
+- Wallet sidebar showing credits, cash balance, and active plan badge
+
+**Bug fixes & reliability**
+- Synced OpenAPI `PaymentPlanStatus` schema with backend (credits, cash, bank details, plan tiers)
+- Fixed sketch workbench crashes from invalid analysis JSON parsing
+- Generation stream errors now surface via toast notifications
+- Live preview iframe refreshes during code refinement
+- Preview page handles invalid sketch IDs gracefully
+- Root `pnpm run typecheck` fixed for Windows monorepo paths
+- Added Stripe dev dependency for API server type safety
+
+**Repository:** [github.com/itzzSPcoder/Imagica](https://github.com/itzzSPcoder/Imagica)
+
+---
+
+## 🎨 Tips for Best-Looking Generated UIs
+
+1. **Use style instructions** on the Convert page — e.g. *"Professional dark dashboard, zinc palette, indigo accents, like Linear"*
+2. **Pick React + shadcn/ui** for the most polished component output
+3. **Use Gemini Refiner Chat** to iterate — *"Increase whitespace"*, *"Use subtle borders instead of shadows"*, *"Make typography more minimal"*
+4. **Choose Hi-Fi Vision mode** when layout fidelity from the original sketch matters more than token savings
+
+---
+
 ## 🏗️ System & Core Architecture Deep-Dive
 
 Imagica is architected as a high-performance **pnpm monorepo workspace**. The entire ecosystem is divided into three distinct layers:

@@ -363,7 +363,7 @@ export default function Home() {
                 </Label>
                 <Textarea
                   id="instructions"
-                  placeholder="e.g. Use a stunning Google AI Studio dark scheme with elegant blue border accents, beautiful glass cards, and crisp micro-animations."
+                  placeholder="e.g. Professional dark dashboard with zinc palette, subtle borders, indigo accent CTAs, and clean typography like Linear or Stripe."
                   rows={6}
                   value={instructions}
                   onChange={(e) => setInstructions(e.target.value)}
