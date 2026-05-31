@@ -10,6 +10,8 @@ import Home from "@/pages/home";
 import History from "@/pages/history";
 import SketchDetail from "@/pages/sketch-detail";
 import PreviewStandalone from "@/pages/preview-standalone";
+import Pricing from "@/pages/pricing";
+import CheckoutSimulation from "@/pages/checkout-simulation";
 import NotFound from "@/pages/not-found";
 import { ClerkProvider, SignedIn, SignedOut, RedirectToSignIn, SignIn, SignUp } from "@clerk/clerk-react";
 
@@ -181,6 +183,8 @@ function Router() {
               <Route path="/studio" component={Home} />
               <Route path="/history" component={History} />
               <Route path="/sketch/:id" component={SketchDetail} />
+              <Route path="/pricing" component={Pricing} />
+              <Route path="/checkout-simulation" component={CheckoutSimulation} />
               <Route component={NotFound} />
             </Switch>
           </Layout>

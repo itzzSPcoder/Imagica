@@ -10,7 +10,7 @@ const router: IRouter = Router();
 const LOCAL_PLANS_FILE = path.resolve(process.cwd(), ".local", "imagica-plans.json");
 
 interface PlanState {
-  plan: "free" | "pro" | "enterprise";
+  plan: "free" | "pro" | "enterprise" | "weekly" | "monthly" | "yearly";
   updatedAt: string;
 }
 
@@ -45,7 +45,19 @@ router.get("/payments/plan", async (req, res): Promise<void> => {
   // Count sketch conversions created by the system
   const allSketches = await db.select().from(sketchesTable);
   const conversionsUsed = allSketches.length;
-  const conversionsLimit = userPlan === "free" ? 3 : userPlan === "pro" ? 99999 : 999999;
+  
+  let conversionsLimit = 3;
+  if (userPlan === "weekly") {
+    conversionsLimit = 20;
+  } else if (userPlan === "monthly") {
+    conversionsLimit = 100;
+  } else if (userPlan === "yearly") {
+    conversionsLimit = 99999;
+  } else if (userPlan === "pro") {
+    conversionsLimit = 99999;
+  } else if (userPlan === "enterprise") {
+    conversionsLimit = 999999;
+  }
 
   res.json({
     plan: userPlan,
@@ -58,14 +70,16 @@ router.get("/payments/plan", async (req, res): Promise<void> => {
 // Create checkout session (Stripe integration + simulated sandbox redirect)
 router.post("/payments/checkout", async (req, res): Promise<void> => {
   const userId = (req.headers["x-user-id"] || "default-user") as string;
+  const { plan } = req.body;
+  const selectedPlan = plan || "monthly";
   const isSimulation = !process.env.STRIPE_SECRET_KEY;
 
   if (isSimulation) {
-    logger.info({ userId }, "Stripe secret key not found. Initializing checkout session in simulation mode.");
+    logger.info({ userId, selectedPlan }, "Stripe secret key not found. Initializing checkout session in simulation mode.");
     
     // In simulation mode, we redirect to our beautiful interactive frontend checkout simulation page
     res.json({
-      url: `/checkout-simulation?userId=${encodeURIComponent(userId)}`,
+      url: `/checkout-simulation?userId=${encodeURIComponent(userId)}&plan=${encodeURIComponent(selectedPlan)}`,
       sessionId: `mock_session_${Date.now()}`,
     });
     return;
@@ -120,7 +134,7 @@ router.post("/payments/checkout", async (req, res): Promise<void> => {
 router.post("/payments/activate", async (req, res): Promise<void> => {
   const { userId, plan } = req.body;
 
-  if (!userId || !["free", "pro", "enterprise"].includes(plan)) {
+  if (!userId || !["free", "pro", "enterprise", "weekly", "monthly", "yearly"].includes(plan)) {
     res.status(400).json({ error: "Invalid request body parameters" });
     return;
   }

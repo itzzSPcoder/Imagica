@@ -245,6 +245,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   <span className="text-sm">History Log</span>
                 </div>
               </Link>
+
+              <Link href="/pricing">
+                <div className={`flex items-center gap-3 px-3.5 py-2.5 rounded-full transition-all cursor-pointer select-none ${
+                  location === "/pricing"
+                    ? "bg-primary/10 text-primary font-medium" 
+                    : "text-muted-foreground hover:bg-primary/5 hover:text-foreground"
+                }`}>
+                  <Sparkles className="w-4 h-4" />
+                  <span className="text-sm">Pricing</span>
+                </div>
+              </Link>
             </div>
 
             {/* Subtle System Stats (Subtle text labels) */}
@@ -392,6 +403,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Link href="/history">
               <div className={`px-3 py-1 rounded-full text-xs font-medium ${location.startsWith("/history") || location.startsWith("/sketch") ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
                 History
+              </div>
+            </Link>
+            <Link href="/pricing">
+              <div className={`px-3 py-1 rounded-full text-xs font-medium ${location === "/pricing" ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
+                Pricing
               </div>
             </Link>
           </div>
